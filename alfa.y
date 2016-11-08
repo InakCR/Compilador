@@ -66,7 +66,7 @@ int salida_parser;
 
 programa: TOK_MAIN TOK_LLAVEIZQUIERDA declaraciones funciones sentencias TOK_LLAVEDERECHA
 		{
-			fprintf(yyout, ";R1:\t main {<declaraciones> <fuciones> <sentencias>}");
+			fprintf(yyout, ";R1:\t main {<declaraciones> <fuciones> <sentencias>}\n");
 		}
 		;
 
