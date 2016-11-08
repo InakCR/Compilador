@@ -72,7 +72,7 @@ programa: TOK_MAIN TOK_LLAVEIZQUIERDA declaraciones funciones sentencias TOK_LLA
 
 declaraciones: declaracion
 			 {
-				fprintf(yyout, ";R2:\t <declaracion>");
+				fprintf(yyout, ";R2:\t <declaracion>\n");
 			 }
 			 | declaracion declaraciones
 			 {
