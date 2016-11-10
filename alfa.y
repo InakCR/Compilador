@@ -103,7 +103,7 @@ clase_escalar: tipo
 			 ;
 tipo: TOK_INT
 	{
-		fprintf(yyout, ";R10:\t<tipo> ::=  int\n");
+		fprintf(yyout, ";R10:\t<tipo> ::= int\n");
 	}
 	| TOK_BOOLEAN
 	{
@@ -139,7 +139,7 @@ funciones: funcion funciones
 
 funcion: TOK_FUNCTION tipo identificador TOK_PARENTESISIZQUIERDO parametros_funcion TOK_PARENTESISDERECHO TOK_LLAVEIZQUIERDA declaraciones_funcion sentencia TOK_LLAVEDERECHA
 	   {
-			fprintf(yyout, ";R22:\t<funcion> ::= function <tipo> <identificador> (<parametros_funcion) {<declaraciones_funcion> <sentencias>}\n");
+			fprintf(yyout, ";R22:\t<funcion> ::= function <tipo> <identificador> ( <parametros_funcion> ) { <declaraciones_funcion> <sentencias> }\n");
 	   }
 	   ;
 
