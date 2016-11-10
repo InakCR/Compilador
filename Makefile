@@ -7,7 +7,7 @@ all : $(EXE)
 
 $(EXE) : lex.yy.c y.tab.c y.tab.h
 	@echo "#----------------------------------------"
-	@echo "# 				Generando sintactico			 			"
+	@echo "#        Generando sintactico            "
 	@echo "#----------------------------------------"
 	$(CC) $(CFLAGS) -o $@ $^
 
@@ -19,7 +19,7 @@ y.tab.h y.tab.c : alfa.y
 
 lex.yy.c : alfa.l y.tab.h
 	@echo "#----------------------------------------"
-	@echo "# 				Generando Flex: lex.yy.c 		    "
+	@echo "#        Generando Flex: lex.yy.c        "
 	@echo "#----------------------------------------"
 	flex  $^
 
