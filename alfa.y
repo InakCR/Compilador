@@ -239,23 +239,23 @@ asignacion: identificador TOK_ASIGNACION exp
 
 elemento_vector: identificador TOK_CORCHETEIZQUIERDO exp TOK_CORCHETEDERECHO
 			   {
-					fprintf(yyout, ";R48:\t<elemento_vector> ::= <identificador> [<exp>]\n");
+					fprintf(yyout, ";R48:\t<elemento_vector> ::= <identificador> [ <exp> ]\n");
 			   }
 			   ;
 
 condicional: TOK_IF TOK_PARENTESISIZQUIERDO exp TOK_PARENTESISDERECHO TOK_LLAVEIZQUIERDA sentencias TOK_LLAVEDERECHA
 		   {
-				fprintf(yyout, ";R50:\t<condicional> ::= if(<exp>){<sentencias>}\n");
+				fprintf(yyout, ";R50:\t<condicional> ::= if( <exp> ){ <sentencias> }\n");
 		   }
 		   | TOK_IF TOK_PARENTESISIZQUIERDO exp TOK_PARENTESISDERECHO TOK_LLAVEIZQUIERDA sentencias TOK_LLAVEDERECHA TOK_ELSE TOK_LLAVEIZQUIERDA sentencias TOK_LLAVEDERECHA
 		   {
-				fprintf(yyout, ";R51:\t<condicional> ::= if(<exp>){<sentencias>} else{<sentencias>}\n");
+				fprintf(yyout, ";R51:\t<condicional> ::= if( <exp> ){ <sentencias> } else { <sentencias> }\n");
 		   }
 		   ;
 
 bucle: TOK_WHILE TOK_PARENTESISIZQUIERDO exp TOK_PARENTESISDERECHO TOK_LLAVEIZQUIERDA sentencias TOK_LLAVEDERECHA
 	 {
-		fprintf(yyout, ";R52:\t<bucle> ::= while(<exp>){<sentencias>}\n");
+		fprintf(yyout, ";R52:\t<bucle> ::= while ( <exp> ){ <sentencias> }\n");
 	 }
 	 ;
 
