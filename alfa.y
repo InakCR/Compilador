@@ -416,22 +416,22 @@ identificador: TOK_IDENTIFICADOR
 %%
 
 
-int main(int argc, char* argv[])
-{
-yyin = fopen(argv[1], "r");
-yyout = fopen(argv[2], "w");
+int main(int argc, char* argv[]){
 
-salida_parser = yyparse();
+	yyin = fopen(argv[1], "r");
+	yyout = fopen(argv[2], "w");
 
-fclose(yyin);
-fclose(yyout);
-return salida_parser;
+	salida_parser = yyparse();
+
+	fclose(yyin);
+	fclose(yyout);
+
+	return salida_parser;
 }
 
-int yyerror (char* s)
-{
-
+int yyerror (char* s){
 	if (error_morfo == 0)
 		printf("****Error sintactico en [lin %d, col %d]\n", fila, column);
+
 	return 1;
 }
