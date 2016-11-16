@@ -133,7 +133,7 @@ funciones: funcion funciones
 		 }
 		 |
 		 {
-			fprintf(yyout, ";R21:\t<funciones> ::=\n");
+
 		 }
 		 ;
 
@@ -149,7 +149,7 @@ parametros_funcion: parametro_funcion resto_parametros_funcion
 				  }
 				  |
 				  {
-					fprintf(yyout, ";R24:\t<parametros_funcion> ::=\n");
+
 				  }
 				  ;
 
@@ -159,7 +159,7 @@ resto_parametros_funcion: TOK_PUNTOYCOMA parametro_funcion resto_parametros_func
 						}
 						|
 						{
-							fprintf(yyout, ";R26:\tt<resto_parametros_funcion> ::=\n");
+
 						}
 						;
 
@@ -175,7 +175,7 @@ declaraciones_funcion: declaraciones
 					 }
 					 |
 					 {
-						fprintf(yyout, ";R29:\t<declaraciones_funcion> ::=\n");
+
 					 }
 					 ;
 
@@ -341,7 +341,7 @@ lista_expresiones: exp resto_lista_expresiones
 				 }
 				 |
 				 {
-					fprintf(yyout, ";R90:\t<lista_expresiones> ::=\n");
+
 				 }
 				 ;
 
@@ -351,7 +351,7 @@ resto_lista_expresiones: TOK_COMA exp resto_lista_expresiones
 					   }
 					   |
 					   {
-							fprintf(yyout, ";R92:\t<resto_lista_expresiones> ::=\n");
+
 					   }
 					   ;
 
@@ -416,22 +416,21 @@ identificador: TOK_IDENTIFICADOR
 %%
 
 
-int main(int argc, char* argv[])
-{
-yyin = fopen(argv[1], "r");
-yyout = fopen(argv[2], "w");
+int main(int argc, char* argv[]){
+	yyin = fopen(argv[1], "r");
+	yyout = fopen(argv[2], "w");
 
-salida_parser = yyparse();
+	salida_parser = yyparse();
 
-fclose(yyin);
-fclose(yyout);
-return salida_parser;
+	fclose(yyin);
+	fclose(yyout);
+
+	return salida_parser;
 }
 
-int yyerror (char* s)
-{
-
+int yyerror (char* s){
 	if (error_morfo == 0)
 		printf("****Error sintactico en [lin %d, col %d]\n", fila, column);
+
 	return 1;
 }
