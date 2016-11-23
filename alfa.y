@@ -59,12 +59,11 @@ int salida_parser;
 %token TOK_TRUE
 %token TOK_FALSE
 
-%right SIG TOK_MENOS
-
-%left TOK_MAS TOK_OR
+%left TOK_MAS TOK_MENOS TOK_OR
 %left TOK_ASTERISCO TOK_DIVISION TOK_AND
 %left TOK_NOT
 
+%right SIG
 
 %%
 
