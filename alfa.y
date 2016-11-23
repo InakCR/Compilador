@@ -9,6 +9,7 @@ extern int column,fila,error_morfo;
 extern FILE *yyin, *yyout;
 extern char *yytext;
 extern int yylex();
+extern int yyleng;
 
 int yyerror(char* s);
 int salida_parser;
@@ -58,9 +59,12 @@ int salida_parser;
 %token TOK_TRUE
 %token TOK_FALSE
 
-%left TOK_MAS TOK_MENOS TOK_OR
+%right SIG TOK_MENOS
+
+%left TOK_MAS TOK_OR
 %left TOK_ASTERISCO TOK_DIVISION TOK_AND
 %left TOK_NOT
+
 
 %%
 
@@ -293,7 +297,7 @@ exp: exp TOK_MAS exp
    {
 		fprintf(yyout, ";R75:\t<exp> ::= <exp> * <exp>\n");
    }
-   | TOK_MENOS exp
+   | TOK_MENOS exp %prec SIG
    {
 		fprintf(yyout, ";R76:\t<exp> ::= - <exp>\n");
    }
@@ -430,8 +434,9 @@ int main(int argc, char* argv[]){
 }
 
 int yyerror (char* s){
-	if (error_morfo == 0)
+	if (error_morfo == 0){
+		column-=yyleng;
 		printf("****Error sintactico en [lin %d, col %d]\n", fila, column);
-
+	}
 	return 1;
 }
