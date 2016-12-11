@@ -3,64 +3,89 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include "alfa.h"
 
 
 extern int column,fila,error_morfo;
 extern FILE *yyin, *yyout;
 extern char *yytext;
 extern int yylex();
+extern int yyleng;
 
 int yyerror(char* s);
 int salida_parser;
 
 %}
 
-%token TOK_OPCION
-%token TOK_SIGUIENTE
-%token TOK_MAIN
-%token TOK_INT
-%token TOK_BOOLEAN
-%token TOK_ARRAY
-%token TOK_FUNCTION
-%token TOK_IF
-%token TOK_ELSE
-%token TOK_WHILE
-%token TOK_SCANF
-%token TOK_PRINTF
-%token TOK_RETURN
+%union{
+	tipo_atributos atributos;
+}
 
-%token TOK_PUNTOYCOMA
-%token TOK_COMA
-%token TOK_PARENTESISIZQUIERDO
-%token TOK_PARENTESISDERECHO
-%token TOK_CORCHETEIZQUIERDO
-%token TOK_CORCHETEDERECHO
-%token TOK_LLAVEIZQUIERDA
-%token TOK_LLAVEDERECHA
-%token TOK_ASIGNACION
-%token TOK_MAS
-%token TOK_MENOS
-%token TOK_DIVISION
-%token TOK_ASTERISCO
-%token TOK_AND
-%token TOK_OR
-%token TOK_NOT
-%token TOK_IGUAL
-%token TOK_DISTINTO
-%token TOK_MENORIGUAL
-%token TOK_MAYORIGUAL
-%token TOK_MENOR
-%token TOK_MAYOR
+%token <atributos> TOK_OPCION
+%token <atributos> TOK_SIGUIENTE
+%token <atributos> TOK_MAIN
+%token <atributos> TOK_INT
+%token <atributos> TOK_BOOLEAN
+%token <atributos>TOK_ARRAY
+%token <atributos> TOK_FUNCTION
+%token <atributos> TOK_IF
+%token <atributos> TOK_ELSE
+%token <atributos> TOK_WHILE
+%token <atributos> TOK_SCANF
+%token <atributos> TOK_PRINTF
+%token <atributos> TOK_RETURN
 
-%token TOK_IDENTIFICADOR
+%token <atributos> TOK_PUNTOYCOMA
+%token <atributos> TOK_COMA
+%token <atributos> TOK_PARENTESISIZQUIERDO
+%token <atributos> TOK_PARENTESISDERECHO
+%token <atributos> TOK_CORCHETEIZQUIERDO
+%token <atributos> TOK_CORCHETEDERECHO
+%token <atributos> TOK_LLAVEIZQUIERDA
+%token <atributos> TOK_LLAVEDERECHA
+%token <atributos> TOK_ASIGNACION
+%token <atributos> TOK_MAS
+%token <atributos> TOK_MENOS
+%token <atributos> TOK_DIVISION
+%token <atributos> TOK_ASTERISCO
+%token <atributos> TOK_AND
+%token <atributos> TOK_OR
+%token <atributos> TOK_NOT
+%token <atributos> TOK_IGUAL
+%token <atributos> TOK_DISTINTO
+%token <atributos> TOK_MENORIGUAL
+%token <atributos> TOK_MAYORIGUAL
+%token <atributos> TOK_MENOR
+%token <atributos> TOK_MAYOR
 
-%token TOK_CONSTANTE_ENTERA
-%token TOK_TRUE
-%token TOK_FALSE
+%token <atributos> TOK_IDENTIFICADOR
+
+%token <atributos> TOK_CONSTANTE_ENTERA
+%token <atributos> TOK_TRUE
+%token <atributos> TOK_FALSE
+
+%type <atributos> programa
+%type <atributos> declaraciones
+%type <atributos> declaracion
+%type <atributos> clase
+%type <atributos> identificadores
+%type <atributos> clase_escalar
+%type <atributos> tipo
+%type <atributos> clase_vector
+%type <atributos> constante_entera
+%type <atributos> identificador
+%type <atributos> funciones
+%type <atributos> funcion
+%type <atributos> parametros_funcion
+%type <atributos> declaraciones_funcion
+%type <atributos> sentencias
+%type <atributos> exp
 
 %left TOK_MAS TOK_MENOS TOK_OR
 %left TOK_ASTERISCO TOK_DIVISION TOK_AND
 %left TOK_NOT
+
+%right SIG
 
 %%
 
@@ -163,7 +188,7 @@ resto_parametros_funcion: TOK_PUNTOYCOMA parametro_funcion resto_parametros_func
 						}
 						;
 
-parametro_funcion: tipo identificador
+parametro_funcion: tipo idpf
 				 {
 					fprintf(yyout, ";R27:\t<parametro_funcion> ::= <tipo> <identificador>\n");
 				 }
@@ -293,7 +318,7 @@ exp: exp TOK_MAS exp
    {
 		fprintf(yyout, ";R75:\t<exp> ::= <exp> * <exp>\n");
    }
-   | TOK_MENOS exp
+   | TOK_MENOS exp %prec SIG
    {
 		fprintf(yyout, ";R76:\t<exp> ::= - <exp>\n");
    }
@@ -412,7 +437,11 @@ identificador: TOK_IDENTIFICADOR
 				fprintf(yyout, ";R108:\t<identificador> ::= TOK_IDENTIFICADOR\n");
 			 }
 			 ;
-
+idpf: TOK_IDENTIFICADOR
+	{
+		
+	}
+	;
 %%
 
 
@@ -430,8 +459,9 @@ int main(int argc, char* argv[]){
 }
 
 int yyerror (char* s){
-	if (error_morfo == 0)
+	if (error_morfo == 0){
+		column-=yyleng;
 		printf("****Error sintactico en [lin %d, col %d]\n", fila, column);
-
+	}
 	return 1;
 }

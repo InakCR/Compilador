@@ -5,6 +5,7 @@ Descripci�n: Definici�n de tokens para el lenguaje ALFA
 #ifndef _TOKENS_H
 #define _TOKENS_H
 
+
 #define TOK_COMENTARIO          96
 #define TOK_ESPACIO             97
 #define TOK_SALTOLINEA          98

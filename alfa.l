@@ -1,8 +1,8 @@
 %{
 #include <stdio.h>
 #include "y.tab.h"
-int column = 0;
-int fila = 0;
+int column = 1;
+int fila = 1;
 
 int error_morfo = 0;
 
@@ -21,7 +21,7 @@ LETRA[A-z]
 {COMENTARIOS}({LETRA}|{ENTERO})*.+	{}
 " "					{column++;}
 "\t"				{column+=yyleng;}
-"\n"				{fila++; column = 0;}
+"\n"				{fila++; column = 1;}
 "main" 			{fprintf(yyout,";D:\tmain\n"); column+=yyleng; return TOK_MAIN;}
 "int"				{fprintf(yyout,";D:\tint\n"); column+=yyleng; return TOK_INT;}
 "boolean"		{fprintf(yyout,";D:\tboolean\n"); column+=yyleng; return TOK_BOOLEAN;}
@@ -69,7 +69,7 @@ LETRA[A-z]
 								}
 						}
 .						{	error_morfo = 1;
-         			printf("****Error Morfologico en [l: %d c: %d] %s Caracter no permitido\n", fila, column, yytext);
+							printf("***Error en [lin %d, col %d]: simbolo no permitido (%s)\n", fila, column, yytext);
 				 			return -1;
 						}
 %%
