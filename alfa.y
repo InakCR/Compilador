@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include "alfa.h"
-
+#include "tablaHash.h"
 
 extern int column,fila,error_morfo;
 extern FILE *yyin, *yyout;
@@ -14,6 +14,11 @@ extern int yyleng;
 
 int yyerror(char* s);
 int salida_parser;
+
+INFO_SIMBOLO * sim = NULL;
+int categoria,tipo_actual;
+int clase_actual,tamanio_vector_actual;
+int pos_variable_local_actual=1;
 
 %}
 
@@ -26,7 +31,7 @@ int salida_parser;
 %token <atributos> TOK_MAIN
 %token <atributos> TOK_INT
 %token <atributos> TOK_BOOLEAN
-%token <atributos>TOK_ARRAY
+%token <atributos> TOK_ARRAY
 %token <atributos> TOK_FUNCTION
 %token <atributos> TOK_IF
 %token <atributos> TOK_ELSE
@@ -89,12 +94,20 @@ int salida_parser;
 
 %%
 
-programa: TOK_MAIN TOK_LLAVEIZQUIERDA declaraciones funciones sentencias TOK_LLAVEDERECHA
+programa: inicioTabla TOK_MAIN TOK_LLAVEIZQUIERDA declaraciones funciones sentencias TOK_LLAVEDERECHA finTabla
 		{
 			fprintf(yyout, ";R1:\t<programa> ::= main { <declaraciones> <funciones> <sentencias> }\n");
 		}
 		;
-
+inicioTabla:
+			{
+				/*Inicializar tablaHash de simbolos*/
+			}
+			;
+finTabla:
+		{
+			/*Liberar tablaHash de simbolos*/
+		}
 declaraciones: declaracion
 			 {
 				fprintf(yyout, ";R2:\t<declaraciones> ::= <declaracion>\n");
@@ -113,10 +126,12 @@ declaracion: clase identificadores TOK_PUNTOYCOMA
 
 clase: clase_escalar
 	 {
+	  clase_actual=ESCALAR;
 		fprintf(yyout, ";R5:\t<clase> ::= <clase_escalar>\n");
 	 }
 	 | clase_vector
 	 {
+	  clase_actual=VECTOR;
 		fprintf(yyout, ";R7:\t<clase> ::= <clase_vector>\n");
 	 }
 	 ;
@@ -128,16 +143,25 @@ clase_escalar: tipo
 			 ;
 tipo: TOK_INT
 	{
+		tipo_actual=INT;
 		fprintf(yyout, ";R10:\t<tipo> ::= int\n");
 	}
 	| TOK_BOOLEAN
 	{
+		tipo_actual=BOOLEAN;
 		fprintf(yyout, ";R11:\t<tipo> ::= <boolean>\n");
 	}
 	;
 
-clase_vector: TOK_ARRAY tipo TOK_CORCHETEIZQUIERDO constante_entera TOK_CORCHETEDERECHO
+clase_vector: TOK_ARRAY tipo TOK_CORCHETEIZQUIERDO TOK_CONSTANTE_ENTERA TOK_CORCHETEDERECHO
 			{
+				tamanio_vector_actual = $4.valor_entero;
+				if ((tamanio_vector_actual < 1 ) ||
+						(tamanio_vector_actual > MAX_TAMANIO_VECTOR))
+				{
+					printf("  ****Error semantico en lin %d: El tamanyo del vector %s excede los limites permitidos (1,64).",fila,$4.lexema);
+					return 0;
+				}
 				fprintf(yyout, ";R15:\t<clase_vector> ::= array <tipo> [ <constante_entera> ]\n");
 			}
 			;
@@ -434,6 +458,13 @@ constante_entera: TOK_CONSTANTE_ENTERA
 
 identificador: TOK_IDENTIFICADOR
 			 {
+			 	sim = buscar_simbolo(ambito, $1.lexema);
+				if(sim!=NULL){
+					printf("****Error semantico en lin %d: Declaracion duplicada.",fila);
+					return 0;
+				}
+				insertar_simbolo(ambito,$1.lexema,categoria,tipo,clase,tamano,0);
+				pos_variable_local_actual++:
 				fprintf(yyout, ";R108:\t<identificador> ::= TOK_IDENTIFICADOR\n");
 			 }
 			 ;

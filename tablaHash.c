@@ -1,4 +1,4 @@
-/* 
+/*
  * Fichero: tablaHash.c
  * Autor: Equipo docente PAUTLEN
  * Curso: 2016-17
@@ -8,10 +8,10 @@
 #include <string.h>
 #include "tablaHash.h"
 
-/* 
+/*
  * Crea una estructura INFO_SIMBOLO a partir de los datos pasados.
  * La memoria para el lexema se duplica, con lo cual el lexema pasado se puede reasignar fuera de la función sin cambiar la estructura.
- * 
+ *
  * Entrada:
  *      lexema: identificador del símbolo.
  *      categ: categoría del símbolo.
@@ -25,7 +25,6 @@
  */
 INFO_SIMBOLO *crear_info_simbolo(const char *lexema, CATEGORIA categ, TIPO tipo, CLASE clase, int adic1, int adic2) {
     INFO_SIMBOLO *is;
-
     if ((is = (INFO_SIMBOLO *) malloc(sizeof(INFO_SIMBOLO)))) {
         /* Duplicar lexema */
         if (!(is->lexema = strdup(lexema))) {
@@ -41,7 +40,7 @@ INFO_SIMBOLO *crear_info_simbolo(const char *lexema, CATEGORIA categ, TIPO tipo,
     return is;
 }
 
-/* 
+/*
  * Libera una estructura INFO_SIMBOLO.
  * La memoria del lexema se libera también.
  *
@@ -59,7 +58,7 @@ void liberar_info_simbolo(INFO_SIMBOLO *is) {
     }
 }
 
-/* 
+/*
  * Crea una estructura NODO_HASH.
  * La información del símbolo se asume ya reservada con crear_info_simbolo y sólo se copia, no se duplica.
  *
@@ -79,7 +78,7 @@ NODO_HASH *crear_nodo(INFO_SIMBOLO *is) {
     return nh;
 }
 
-/* 
+/*
  * Libera una estructura NODO_HASH.
  * La información del símbolo se libera también.
  *
@@ -95,7 +94,7 @@ void liberar_nodo(NODO_HASH *nh) {
     }
 }
 
-/* 
+/*
  * Crea una tabla hash.
  * La tabla hash consiste en un array de punteros a NODO_HASH del tamaño especificado.
  *
@@ -112,7 +111,7 @@ TABLA_HASH *crear_tabla(int tam) {
     if ((th = (TABLA_HASH *) malloc(sizeof(TABLA_HASH)))) {
         /* Reservar tabla en sí */
         if (!(th->tabla = (NODO_HASH **) calloc(tam, sizeof(NODO_HASH *)))) {    /* todos los punteros a nodo a NULL */
-            free(th); 
+            free(th);
             return NULL;
         }
         th->tam = tam;
@@ -120,9 +119,9 @@ TABLA_HASH *crear_tabla(int tam) {
     return th;
 }
 
-/* 
+/*
  * Libera una tabla hash.
- * Esto a su vez implica liberar todos los nodos apuntados directa o indirectamente por la tabla, 
+ * Esto a su vez implica liberar todos los nodos apuntados directa o indirectamente por la tabla,
  * así como la información de todos los símbolos.
  *
  * Entrada:
@@ -133,7 +132,7 @@ TABLA_HASH *crear_tabla(int tam) {
 void liberar_tabla(TABLA_HASH *th) {
     int i;
     NODO_HASH *n1, *n2;
-    
+
     if (th) {
         if (th->tabla) {
             /* Recorrer punteros */
@@ -143,7 +142,7 @@ void liberar_tabla(TABLA_HASH *th) {
                 while (n1) {
                     n2 = n1->siguiente;
                     liberar_nodo(n1);
-                    n1 = n2;      
+                    n1 = n2;
                 }
             }
             free(th->tabla);
@@ -152,7 +151,7 @@ void liberar_tabla(TABLA_HASH *th) {
     }
 }
 
-/* 
+/*
  * Implementa una función hash multiplicativa para cadenas.
  *
  * Entrada:
@@ -171,20 +170,20 @@ unsigned long hash(const char *str) {
     return h;
 }
 
-/* 
+/*
  * Busca un símbolo en la tabla hash.
- * 
+ *
  * Entrada:
  *      th: tabla hash donde buscar.
  *      lexema: identificador del símbolo.
  *
- * Salida: 
+ * Salida:
  *      INFO_SIMBOLO *: puntero a la información del símbolo, NULL si el símbolo no se encuentra.
  */
 INFO_SIMBOLO *buscar_simbolo(const TABLA_HASH *th, const char *lexema) {
-    unsigned int ind;    
+    unsigned int ind;
     NODO_HASH *n;
-        
+
     /* Calcular posición */
     ind = hash(lexema) % th->tam;
     /* Buscar en lista enlazada */
@@ -195,10 +194,10 @@ INFO_SIMBOLO *buscar_simbolo(const TABLA_HASH *th, const char *lexema) {
     return n ? n->info : NULL;
 }
 
-/* 
+/*
  * Inserta un símbolo en la tabla hash.
  * Si el símbolo ya existe se produce un error.
- * 
+ *
  * Entrada:
  *      th: tabla hash donde insertar.
  *      lexema: identificador del símbolo.
@@ -208,14 +207,14 @@ INFO_SIMBOLO *buscar_simbolo(const TABLA_HASH *th, const char *lexema) {
  *      adic1: valor adicional del símbolo (dependiente de lo anterior, consultar tablaHash.h)
  *      adic2: valor adicional del símbolo (dependiente de lo anterior, consultar tablaHash.h)
  *
- * Salida: 
+ * Salida:
  *      STATUS: OK si se inserta correctamente, ERR si no (por ya existir o por memoria insuficiente).
  */
 STATUS insertar_simbolo(TABLA_HASH *th, const char *lexema, CATEGORIA categ, TIPO tipo, CLASE clase, int adic1, int adic2) {
     int ind;
-    INFO_SIMBOLO *is;    
+    INFO_SIMBOLO *is;
     NODO_HASH *n = NULL;
-    
+
     /* Buscar símbolo */
     if (buscar_simbolo(th, lexema)) {
         return ERR;
@@ -236,10 +235,10 @@ STATUS insertar_simbolo(TABLA_HASH *th, const char *lexema, CATEGORIA categ, TIP
     return OK;
 }
 
-/* 
+/*
  * Borra un símbolo de la tabla hash.
  * Si el símbolo no existe no se produce ningún efecto.
- * 
+ *
  * Entrada:
  *      th: tabla hash donde insertar.
  *      lexema: identificador del símbolo.
@@ -272,4 +271,3 @@ void borrar_simbolo(TABLA_HASH *th, const char *lexema) {
     liberar_nodo(n);
     return;
 }
-
