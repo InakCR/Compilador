@@ -6,6 +6,7 @@ int fila = 1;
 
 int error_morfo = 0;
 
+IDLEN 101
 %}
 
 %option noyywrap
@@ -59,13 +60,12 @@ LETRA[A-z]
 "true" 			{fprintf(yyout,";D:\ttrue\n"); column+=yyleng; return TOK_TRUE;}
 "false" 		{fprintf(yyout,";D:\tfalse\n"); column+=yyleng; return TOK_FALSE;}
 {LETRA}({LETRA}|{ENTERO})*  {
-								if(yyleng<101){
+								if(yyleng<IDLEN){
 									fprintf(yyout,";D:\t%s\n",yytext); column+=yyleng; return TOK_IDENTIFICADOR;
 								}
-								else{
-									printf("****Error en [lin %d, col %d]: identificador demasiado largo (%s)\n", fila, column, yytext);
-									error_morfo = 1;
-									return -1;
+								printf("****Error en [lin %d, col %d]: identificador demasiado largo (%s)\n", fila, column, yytext);
+								error_morfo = 1;
+								return -1;
 								}
 						}
 .						{	error_morfo = 1;

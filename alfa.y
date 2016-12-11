@@ -439,7 +439,7 @@ identificador: TOK_IDENTIFICADOR
 			 ;
 idpf: TOK_IDENTIFICADOR
 	{
-		
+
 	}
 	;
 %%

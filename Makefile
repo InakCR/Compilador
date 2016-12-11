@@ -1,13 +1,13 @@
 
 CC = gcc
 CFLAGS = -Wall
-EXE = pruebaSintactico
+EXE = alfa
 
 all : $(EXE)
 
-$(EXE) : lex.yy.c y.tab.c y.tab.h
+$(EXE) : lex.yy.c y.tab.c y.tab.h tablaHash.c tablaHash.h
 	@echo "#----------------------------------------"
-	@echo "#        Generando sintactico            "
+	@echo "#        Generando alfa                  "
 	@echo "#----------------------------------------"
 	$(CC) $(CFLAGS) -o $@ $^
 
@@ -24,4 +24,4 @@ lex.yy.c : alfa.l y.tab.h
 	flex  $^
 
 clean :
-		rm -f *.o lex.yy.c y.output y.tab.* mi*.txt $(EXE)
+		rm -f *.o lex.yy.c y.output y.tab.* $(EXE)
