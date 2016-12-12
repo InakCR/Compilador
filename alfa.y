@@ -16,10 +16,14 @@ int yyerror(char* s);
 int salida_parser;
 
 INFO_SIMBOLO * sim = NULL;
+TABLA_HASH* global = NULL, *local = NULL;
+
 int categoria,tipo_actual;
 int clase_actual,tamanio_vector_actual;
 int pos_variable_local_actual=1;
-
+int num_variables_locales_actual=0;
+int pos_parametro_actual=0;
+int num_parametros_actual=0;
 %}
 
 %union{
@@ -101,7 +105,8 @@ programa: inicioTabla TOK_MAIN TOK_LLAVEIZQUIERDA declaraciones funciones senten
 		;
 inicioTabla:
 			{
-				/*Inicializar tablaHash de simbolos*/
+				/*Inicializar tablaHash global de simbolos*/
+				global = crear_tabla(HASHSIZE);
 			}
 			;
 finTabla:
@@ -191,7 +196,30 @@ funcion: TOK_FUNCTION tipo identificador TOK_PARENTESISIZQUIERDO parametros_func
 			fprintf(yyout, ";R22:\t<funcion> ::= function <tipo> <identificador> ( <parametros_funcion> ) { <declaraciones_funcion> <sentencias> }\n");
 	   }
 	   ;
+fn_name : TOK_FUNCTION tipo TOK_IDENTIFICADOR
+		{
+			sim = buscar_simbolo(global, $3.lexema);
+			if(sim!=NULL){
+				printf("****Error semantico en lin %d: Declaracion duplicada.",fila);
+				return 0;
+			}
+			insertar_simbolo(global,$3.lexema,FUNCION,tipo_actual,clase_actual,0,0);
+			local = crear_tabla(HASHSIZE);
+			insertar_simbolo(local,$3.lexema,FUNCION,tipo_actual,clase_actual,0,0);
+		  num_variables_locales_actual = 0
+			pos_variable_local_actual = 1
+ 			num_parametros_actual = 0
+ 			pos_parametro_actual = 0
 
+			/*Propagacion IZQ, fn_name <- TOKID*/
+			strcpy($$.lexema,$3.lexema);
+		}
+		;
+fn_declaration : fn_name TOK_PARENTESISIZQUIERDO parametros_funcion TOK_PARENTESISDERECHO TOK_LLAVEIZQUIERDA declaraciones_funcion
+				{
+					
+				}
+				;
 parametros_funcion: parametro_funcion resto_parametros_funcion
 				  {
 					fprintf(yyout, ";R23:\t<parametros_funcion> ::= <parametro_funcion> <resto_parametros_funcion>\n");
@@ -458,19 +486,44 @@ constante_entera: TOK_CONSTANTE_ENTERA
 
 identificador: TOK_IDENTIFICADOR
 			 {
-			 	sim = buscar_simbolo(ambito, $1.lexema);
+			 if(local==NULL){
+			 		/*Insercion Variable goblal*/
+				 	sim = buscar_simbolo(global, $1.lexema);
+					if(sim!=NULL){
+						printf("****Error semantico en lin %d: Declaracion duplicada.",fila);
+						return 0;
+					}
+					insertar_simbolo(global,$1.lexema,VARIABLE,tipo_actual,clase_actual,tamanio_vector_actual,0);
+					pos_variable_local_actual++:
+			}else{
+				/*Insercion Variable local*/
+				sim = buscar_simbolo(local, $1.lexema);
 				if(sim!=NULL){
 					printf("****Error semantico en lin %d: Declaracion duplicada.",fila);
 					return 0;
 				}
-				insertar_simbolo(ambito,$1.lexema,categoria,tipo,clase,tamano,0);
-				pos_variable_local_actual++:
-				fprintf(yyout, ";R108:\t<identificador> ::= TOK_IDENTIFICADOR\n");
-			 }
-			 ;
+				if(clase_actual!=ESCALAR){
+					printf("****Error semantico en lin %d: Variable local de tipo no escalar.",fila);
+					return 0;
+				}
+				insertar_simbolo(local,$1.lexema,categoria,tipo,clase,tamanio_vector_actual,pos_variable_local_actual);
+				pos_variable_local_actual++;
+				num_variables_locales_actual++;
+			}
+			fprintf(yyout, ";R108:\t<identificador> ::= TOK_IDENTIFICADOR\n");
+		 }
+		 ;
 idpf: TOK_IDENTIFICADOR
 	{
+		sim = buscar_simbolo(local, $1.lexema);
 
+		if(sim!=NULL){
+			printf("****Error semantico en lin %d: Declaracion duplicada.",fila);
+			return 0;
+		}
+		insertar_simbolo(local,$1.lexema,categoria,tipo,clase,tamanio_vector_actual,pos_parametro_actual);
+		pos_parametro_actual++;
+		num_parametros_actual++;
 	}
 	;
 %%
