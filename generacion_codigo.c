@@ -1,66 +1,53 @@
-/**
- *
- * Descripcion:
- *
- * Fichero: generacion_codigo.c
- * Autor: Daniel Cuesta, Iñaki Cadalso
- * Version: 1.0
- * Fecha: 28-09-2016
- *
- */
-
-#include <stdlib.h>
-#include <stdio.h>
-
 #include "generacion_codigo.h"
 
-void escribirSegmentos(FILE* f,int op1,int op2){
+void escribirSegmentos(FILE* f,TABLA_HASH* hash){
 	escribirData(f);
-	escribirBss(f);
+	escribirBss(f,hash);
 	escribirText(f);
-	escribirImain(f,op1,op2);
-	escribirFmain(f);
 }
 void escribirData(FILE* f){
- 	 fprintf(f,"segment .data\n");
- 	 fprintf(f,"	rsuma dw 'La suma es:'\n");
- 	 fprintf(f,"	rdiv dw 'La division es:'\n");
- 	 fprintf(f,"	rmul dw 'La multiplicacion es:'\n");
- 	 fprintf(f,"	error0 dw 'Division por Cero'\n");
- 	 fprintf(f,"	rdif dw 'La diferencia es:'\n");
-	 fprintf(f,"\n");
- }
-void escribirBss(FILE* f){
+	fprintf(f,"segment .data\n");
+	fprintf(f,"mensaje_1 db 'Indice fuera de rango' , 0\n");
+	fprintf(f,"mensaje_2 db 'División por cero' , 0\n");
+	fprintf(f,"\n");
+}
+void escribirBss(FILE* f,TABLA_HASH* hash){
+	NODO_HASH *n;
+	int i;
 	fprintf(f,"segment .bss\n");
-	fprintf(f,"	op1 resd 1\n");
-	fprintf(f,"	op2 resd 1\n");
-	fprintf(f,"	pila resd 1\n");
+	for(i=0;i<hash->tam;i++){
+		n=hash->tabla[i];
+		while(n!=NULL){
+			if(n->info->clase==ESCALAR)
+				fprintf(f, "_%s resd",n->info->lexema);
+			if(n->info->clase==VECTOR)
+				fprintf(f, "_%s resd %d",n->info->lexema,n->info->adicional1);
+			n=n->siguiente;
+		}
+	}
 	fprintf(f,"\n");
 }
 void escribirText(FILE* f){
 	fprintf(f,"segment .text\n");
-	fprintf(f,"	global main\n");
-	fprintf(f,"	extern print_int,print_endofline,print_string\n");
+	fprintf(f,"global main\n");
+	fprintf(f,"extern scan_int, scan_boolean\n");
+	fprintf(f,"extern print_int, print_boolean, print_string, print_blank, print_endofline\n");
 	fprintf(f,"\n");
 }
-void escribirImain(FILE* f,int op1,int op2){
+void escribirImain(FILE* f){
 	fprintf(f,"main:\n");
-	fprintf(f," MOV dword [pila], esp\n");
-	fprintf(f,"	MOV dword [op1],%d\n", op1);
-	fprintf(f,"	MOV dword [op2],%d\n", op2);
-	fprintf(f,"	jmp suma\n");
 	fprintf(f,"\n");
 }
 void escribirFmain(FILE* f){
-	fprintf(f,"error:\n");
-	fprintf(f,"	push dword error0 \n");
-	fprintf(f,"	call print_string\n");
-	fprintf(f,"	ADD esp,4\n");
-	fprintf(f,"	call print_endofline\n");
-	fprintf(f,"fin:\n");
-	fprintf(f," MOV esp,[pila]\n");
-	fprintf(f,"	ret\n");
-	fprintf(f,"\n");
+	fprintf(f,"error_1: push dword mensaje_1\n");
+	fprintf(f,"   call print_string\n");
+	fprintf(f,"   add esp, 4\n");
+	fprintf(f,"   jmp near fin\n");
+	fprintf(f,"error_2: push dword mensaje_2\n");
+	fprintf(f,"   call print_string\n");
+	fprintf(f,"   add esp, 4\n");
+	fprintf(f,"   jmp near fin\n");
+	fprintf(f,"fin: ret\n");
 }
 
 void suma(FILE* f){

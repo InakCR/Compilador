@@ -63,13 +63,13 @@ LETRA[A-z]
 								if(yyleng<IDLEN){
 									fprintf(yyout,";D:\t%s\n",yytext); column+=yyleng; return TOK_IDENTIFICADOR;
 								}
-								printf("****Error en [lin %d, col %d]: identificador demasiado largo (%s)\n", fila, column, yytext);
+								fprintf(stdr,"****Error en [lin %d, col %d]: identificador demasiado largo (%s)\n", fila, column, yytext);
 								error_morfo = 1;
 								return -1;
 								}
 						}
 .						{	error_morfo = 1;
-							printf("***Error en [lin %d, col %d]: simbolo no permitido (%s)\n", fila, column, yytext);
+							fprintf(stdr,"***Error en [lin %d, col %d]: simbolo no permitido (%s)\n", fila, column, yytext);
 				 			return -1;
 						}
 %%

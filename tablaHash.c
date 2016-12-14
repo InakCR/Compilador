@@ -7,7 +7,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "tablaHash.h"
-
 /*
  * Crea una estructura INFO_SIMBOLO a partir de los datos pasados.
  * La memoria para el lexema se duplica, con lo cual el lexema pasado se puede reasignar fuera de la función sin cambiar la estructura.
