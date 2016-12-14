@@ -86,9 +86,19 @@ int num_parametros_actual=0;
 %type <atributos> funciones
 %type <atributos> funcion
 %type <atributos> parametros_funcion
+%type <atributos> parametro_funcion
 %type <atributos> declaraciones_funcion
+%type <atributos> resto_parametros_funcion
 %type <atributos> sentencias
+%type <atributos> sentencia
+%type <atributos> sentencia_simple
+%type <atributos> asignacion
+%type <atributos> lectura
+%type <atributos> escritura
+%type <atributos> retorno_funcion
 %type <atributos> exp
+%type <atributos> idpf
+
 
 %left TOK_MAS TOK_MENOS TOK_OR
 %left TOK_ASTERISCO TOK_DIVISION TOK_AND
@@ -191,8 +201,16 @@ funciones: funcion funciones
 		 }
 		 ;
 
-funcion: TOK_FUNCTION tipo identificador TOK_PARENTESISIZQUIERDO parametros_funcion TOK_PARENTESISDERECHO TOK_LLAVEIZQUIERDA declaraciones_funcion sentencia TOK_LLAVEDERECHA
+funcion: fn_declaracion sentencias TOK_LLAVEDERECHA
 	   {
+			liberar_tabla(local);
+			sim = buscar_simbolo(global, $1.lexema);
+			if(sim==NULL){
+				printf("****Error semantico en lin %d: Acceso a variable no declarada (%s).",fila, $1.lexema);
+				return 0;
+			}
+			sim.adicional1 = num_parametros_actual;
+			
 			fprintf(yyout, ";R22:\t<funcion> ::= function <tipo> <identificador> ( <parametros_funcion> ) { <declaraciones_funcion> <sentencias> }\n");
 	   }
 	   ;
@@ -206,10 +224,10 @@ fn_name : TOK_FUNCTION tipo TOK_IDENTIFICADOR
 			insertar_simbolo(global,$3.lexema,FUNCION,tipo_actual,clase_actual,0,0);
 			local = crear_tabla(HASHSIZE);
 			insertar_simbolo(local,$3.lexema,FUNCION,tipo_actual,clase_actual,0,0);
-		  num_variables_locales_actual = 0
-			pos_variable_local_actual = 1
- 			num_parametros_actual = 0
- 			pos_parametro_actual = 0
+			num_variables_locales_actual = 0;
+			pos_variable_local_actual = 1;
+ 			num_parametros_actual = 0;
+ 			pos_parametro_actual = 0;
 
 			/*Propagacion IZQ, fn_name <- TOKID*/
 			strcpy($$.lexema,$3.lexema);
@@ -217,7 +235,13 @@ fn_name : TOK_FUNCTION tipo TOK_IDENTIFICADOR
 		;
 fn_declaration : fn_name TOK_PARENTESISIZQUIERDO parametros_funcion TOK_PARENTESISDERECHO TOK_LLAVEIZQUIERDA declaraciones_funcion
 				{
-					
+					sim = buscar_simbolo(local, $1.lexema);
+					if(sim!=NULL){
+						printf("****Error semantico en lin %d: Declaracion duplicada.",fila);
+						return 0;
+					}
+					sim.adicional1 = num_parametros_actual;
+					strcpy($$.lexema,$1.lexema);
 				}
 				;
 parametros_funcion: parametro_funcion resto_parametros_funcion
@@ -304,7 +328,7 @@ bloque: condicional
 	  }
 	  ;
 
-asignacion: identificador TOK_ASIGNACION exp
+asignacion: TOK_IDENTIFICADOR TOK_ASIGNACION exp
 		  {
 			fprintf(yyout, ";R43:\t<asignacion> ::= <identificador> = <exp>\n");
 		  }
@@ -314,7 +338,7 @@ asignacion: identificador TOK_ASIGNACION exp
 		  }
 		  ;
 
-elemento_vector: identificador TOK_CORCHETEIZQUIERDO exp TOK_CORCHETEDERECHO
+elemento_vector: TOK_IDENTIFICADOR TOK_CORCHETEIZQUIERDO exp TOK_CORCHETEDERECHO
 			   {
 					fprintf(yyout, ";R48:\t<elemento_vector> ::= <identificador> [ <exp> ]\n");
 			   }
@@ -336,8 +360,21 @@ bucle: TOK_WHILE TOK_PARENTESISIZQUIERDO exp TOK_PARENTESISDERECHO TOK_LLAVEIZQU
 	 }
 	 ;
 
-lectura: TOK_SCANF identificador
+lectura: TOK_SCANF TOK_IDENTIFICADOR
 	   {
+			sim = buscar_simbolo(local, $2.lexema);
+			if(sim==NULL){
+				printf("****Error semantico en lin %d: Acceso a variable no declarada (%s).",fila, $1.lexema);
+				return 0;
+			}
+			else{
+				if(sim->CATEGORIA==FUNCION){
+					printf("****Error semantico en lin %d: Acceso a variable no declarada (%s).",fila, $1.lexema);
+				}
+				if(sim->CLASE==VECTOR){
+					printf("****Error semantico en lin %d: Acceso a variable no declarada (%s).",fila, $1.lexema);
+				}
+			}
 			fprintf(yyout, ";R54:\t<lectura> ::= scanf <identificador>\n");
 	   }
 	   ;
@@ -386,7 +423,7 @@ exp: exp TOK_MAS exp
    {
 		fprintf(yyout, ";R79:\t<exp> ::= ! <exp>\n");
    }
-   | identificador
+   | TOK_IDENTIFICADOR
    {
 		fprintf(yyout, ";R80:\t<exp> ::= <identificador>\n");
    }
@@ -406,7 +443,7 @@ exp: exp TOK_MAS exp
    {
 		fprintf(yyout, ";R85:\t<exp> ::= <elemento_vector>\n");
    }
-   | identificador TOK_PARENTESISIZQUIERDO lista_expresiones TOK_PARENTESISDERECHO
+   | TOK_IDENTIFICADOR TOK_PARENTESISIZQUIERDO lista_expresiones TOK_PARENTESISDERECHO
    {
 		fprintf(yyout, ";R88:\t<exp> ::= <identificador> ( <lista_expresiones> )\n");
    }

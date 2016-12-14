@@ -7,6 +7,9 @@
 #define MAX_LONG_ID 100
 #define MAX_TAMANIO_VECTOR 64
 
+
+//Errores semanticos en yyerror fprintf(stdr)
+
 typedef struct {
 	char * lexema;
 	int tipo; //INT,BOOL
