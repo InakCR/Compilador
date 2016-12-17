@@ -17,6 +17,7 @@ int salida_parser;
 INFO_SIMBOLO * sim = NULL;
 TABLA_HASH* global = NULL, *local = NULL;
 char err[200];
+int etiqueta=0;
 
 int categoria,tipo_actual;
 int clase_actual,tamanio_vector_actual;
@@ -24,6 +25,7 @@ int pos_variable_local_actual=1;
 int num_variables_locales_actual=0;
 int pos_parametro_actual=0;
 int num_parametros_actual=0;
+int en_explist=1;
 %}
 
 %union{
@@ -342,10 +344,37 @@ bloque: condicional
 
 asignacion: TOK_IDENTIFICADOR TOK_ASIGNACION exp
 		  {
+			sim = buscar($1.lexema);
+
+			if(sim == NULL){
+				sprintf(err,"****Error semantico en lin %d: Acceso a variable no declarada (%s).",fila, $1.lexema);
+				yyerror(err);
+			}
+
+			if(sim->categoria == FUNCION){
+				sprintf(err,"****Error semantico en lin %d: Identificador de categoria Funcion ",fila);
+				yyerror(err);
+			}
+
+			if(sim->clase != ESCALAR){
+				sprintf(err,"****Error semantico en lin %d: Variable local de tipo no escalar.",fila);
+				yyerror(err);
+			}
+
+			 if(sim->tipo != $3.tipo){
+				sprintf(err,"****Error semantico en lin %d: Asignacion incompatible.",fila);
+				yyerror(err);
+			 }
+
 			fprintf(yyout, ";R43:\t<asignacion> ::= <identificador> = <exp>\n");
 		  }
 		  | elemento_vector TOK_ASIGNACION exp
 		  {
+			if($1.tipo != $3.tipo){
+				sprintf(err,"****Error semantico en lin %d: Asignacion incompatible.",fila);
+				yyerror(err);
+			}
+
 			fprintf(yyout, ";R44:\t<asignacion> ::= <elemento_vector> = <exp>\n");
 		  }
 		  ;
@@ -358,34 +387,49 @@ elemento_vector: TOK_IDENTIFICADOR TOK_CORCHETEIZQUIERDO exp TOK_CORCHETEDERECHO
 
 condicional: TOK_IF TOK_PARENTESISIZQUIERDO exp TOK_PARENTESISDERECHO TOK_LLAVEIZQUIERDA sentencias TOK_LLAVEDERECHA
 		   {
+				if($3.tipo != BOOLEAN){
+					sprintf(err,"****Error semantico en lin %d: Condicional con condicion de tipo int.",fila);
+					yyerror(err);
+				}
+
 				fprintf(yyout, ";R50:\t<condicional> ::= if( <exp> ){ <sentencias> }\n");
 		   }
 		   | TOK_IF TOK_PARENTESISIZQUIERDO exp TOK_PARENTESISDERECHO TOK_LLAVEIZQUIERDA sentencias TOK_LLAVEDERECHA TOK_ELSE TOK_LLAVEIZQUIERDA sentencias TOK_LLAVEDERECHA
 		   {
+				if($3.tipo != BOOLEAN){
+					sprintf(err,"****Error semantico en lin %d: Condicional con condicion de tipo int.",fila);
+					yyerror(err);
+				}
+
 				fprintf(yyout, ";R51:\t<condicional> ::= if( <exp> ){ <sentencias> } else { <sentencias> }\n");
 		   }
 		   ;
 
 bucle: TOK_WHILE TOK_PARENTESISIZQUIERDO exp TOK_PARENTESISDERECHO TOK_LLAVEIZQUIERDA sentencias TOK_LLAVEDERECHA
 	 {
+		if($3.tipo != BOOLEAN){
+			sprintf(err,"****Error semantico en lin %d: Bucle con condicion de tipo int.",fila);
+			yyerror(err);
+		}
+
 		fprintf(yyout, ";R52:\t<bucle> ::= while ( <exp> ){ <sentencias> }\n");
 	 }
 	 ;
 
 lectura: TOK_SCANF TOK_IDENTIFICADOR
 	   {
-			sim = buscar_simbolo(local, $2.lexema);
+			sim = buscar($2.lexema);
 			if(sim==NULL){
 				sprintf(err,"****Error semantico en lin %d: Acceso a variable no declarada (%s).",fila, $1.lexema);
 				yyerror(err);
 			}
 			else{
-				if(sim->CATEGORIA==FUNCION){
-					sprintf(err,"****Error semantico en lin %d: Acceso a variable no declarada (%s).",fila, $1.lexema);
+				if(sim->categoria==FUNCION){
+					sprintf(err,"****Error semantico en lin %d: Identificador de categoria Funcion.",fila);
 					yyerror(err);
 				}
-				if(sim->CLASE==VECTOR){
-					sprintf(err,"****Error semantico en lin %d: Acceso a variable no declarada (%s).",fila, $1.lexema);
+				if(sim->clase==VECTOR){
+					sprintf(err,"****Error semantico en lin %d: Variable local de tipo no escalar.",fila);
 					yyerror(err);
 				}
 			}
@@ -407,58 +451,167 @@ retorno_funcion: TOK_RETURN exp
 
 exp: exp TOK_MAS exp
    {
+		if($1.tipo != INT || $3.tipo != INT){
+			sprintf(err,"****Error semantico en lin %d: Operacion aritmetica con operandos boolean.",fila);
+			yyerror(err);
+		}
+		$$.tipo = INT;
+		$$.es_direccion = 0;
+		gc_suma_enteros(yyout, $1.es_direccion, $3.es_direccion);
+
 		fprintf(yyout, ";R72:\t<exp> ::= <exp> + <exp>\n");
    }
    | exp TOK_MENOS exp
    {
+   		if($1.tipo != INT || $3.tipo != INT){
+			sprintf(err,"****Error semantico en lin %d: Operacion aritmetica con operandos boolean.",fila);
+			yyerror(err);
+		}
+		$$.tipo = INT;
+		$$.es_direccion = 0;
+		gc_resta_enteros(yyout, $1.es_direccion, $3.es_direccion);
+
 		fprintf(yyout, ";R73:\t<exp> ::= <exp> - <exp>\n");
    }
    | exp TOK_DIVISION exp
    {
+   		if($1.tipo != INT || $3.tipo != INT){
+			sprintf(err,"****Error semantico en lin %d: Operacion aritmetica con operandos boolean.",fila);
+			yyerror(err);
+		}
+		$$.tipo = INT;
+		$$.es_direccion = 0;
+		gc_division_enteros(yyout, $1.es_direccion, $3.es_direccion);
+
 		fprintf(yyout, ";R74:\t<exp> ::= <exp> / <exp>\n");
    }
    | exp TOK_ASTERISCO exp
    {
+   		if($1.tipo != INT || $3.tipo != INT){
+			sprintf(err,"****Error semantico en lin %d: Operacion aritmetica con operandos boolean.",fila);
+			yyerror(err);
+		}
+		$$.tipo = INT;
+		$$.es_direccion = 0;
+		gc_mult_enteros(yyout, $1.es_direccion, $3.es_direccion);
+
 		fprintf(yyout, ";R75:\t<exp> ::= <exp> * <exp>\n");
    }
    | TOK_MENOS exp %prec SIG
    {
+   		if($2.tipo != INT){
+			sprintf(err,"****Error semantico en lin %d: Operacion aritmetica con operandos boolean.",fila);
+			yyerror(err);
+		}
+		$$.tipo = INT;
+		$$.es_direccion = 0;
+		gc_neg_enteros(yyout, $2.es_direccion);
+
 		fprintf(yyout, ";R76:\t<exp> ::= - <exp>\n");
    }
    | exp TOK_AND exp
    {
+		if($1.tipo != BOOLEAN || $3.tipo != BOOLEAN){
+			sprintf(err,"****Error semantico en lin %d: Operacion logica con operandos int.",fila);
+			yyerror(err);
+		}
+		$$.tipo = BOOLEAN;
+		$$.es_direccion = 0;
+		gc_and_enteros(yyout, $1.es_direccion, $3.es_direccion);
+
 		fprintf(yyout, ";R77:\t<exp> ::= <exp> && <exp>\n");
    }
    | exp TOK_OR exp
    {
+   		if($1.tipo != BOOLEAN || $3.tipo != BOOLEAN){
+			sprintf(err,"****Error semantico en lin %d: Operacion logica con operandos int.",fila);
+			yyerror(err);
+		}
+		$$.tipo = BOOLEAN;
+		$$.es_direccion = 0;
+		gc_or_enteros(yyout, $1.es_direccion, $3.es_direccion);
+
 		fprintf(yyout, ";R78:\t<exp> ::= <exp> || <exp>\n");
    }
    | TOK_NOT exp
    {
+   		if($2.tipo != BOOLEAN){
+			sprintf(err,"****Error semantico en lin %d: Operacion logica con operandos int.",fila);
+			yyerror(err);
+		}
+		$$.tipo = BOOLEAN;
+		$$.es_direccion = 0;
+		etiqueta++;
+		gc_not_enteros(yyout, $2.es_direccion,etiqueta);
+
 		fprintf(yyout, ";R79:\t<exp> ::= ! <exp>\n");
    }
    | TOK_IDENTIFICADOR
    {
+		sim = buscar($1.lexema);
+
+		if(sim == NULL){
+			sprintf(err,"****Error semantico en lin %d: Acceso a variable no declarada (%s).",fila, $1.lexema);
+			yyerror(err);
+		}
+
+		if(sim->clase != ESCALAR){
+			sprintf(err,"****Error semantico en lin %d: Variable local de tipo no escalar.",fila);
+			yyerror(err);
+		}
+
+		if(sim->categoria == FUNCION){
+			sprintf(err,"****Error semantico en lin %d: ",fila);
+			yyerror(err);
+		}
+
+		$$.tipo = sim->tipo;
+		$$.es_direccion = 1;
+
 		fprintf(yyout, ";R80:\t<exp> ::= <identificador>\n");
    }
    | constante
    {
+		$$.tipo = $1.tipo;
+		$$.es_direccion = $1.es_direccion;
+
 		fprintf(yyout, ";R81:\t<exp> ::= <constante>\n");
    }
    | TOK_PARENTESISIZQUIERDO exp TOK_PARENTESISDERECHO
    {
+		$$.tipo = $2.tipo;
+		$$.es_direccion = $2.es_direccion;
+
 		fprintf(yyout, ";R82:\t<exp> ::= ( <exp> )\n");
    }
    | TOK_PARENTESISIZQUIERDO comparacion TOK_PARENTESISDERECHO
    {
+		$$.tipo = $2.tipo;
+		$$.es_direccion = $2.es_direccion;
+
 		fprintf(yyout, ";R83:\t<exp> ::= ( <comparacion> )\n");
    }
    | elemento_vector
    {
+		$$.tipo = $1.tipo;
+		$$.es_direccion = $1.es_direccion;
+
 		fprintf(yyout, ";R85:\t<exp> ::= <elemento_vector>\n");
    }
    | TOK_IDENTIFICADOR TOK_PARENTESISIZQUIERDO lista_expresiones TOK_PARENTESISDERECHO
    {
+		sim = buscar($1.lexema);
+
+		if(sim == NULL){
+			sprintf(err,"****Error semantico en lin %d: Acceso a variable no declarada (%s).",fila, $1.lexema);
+			yyerror(err);
+		}
+
+		if(sim->categoria != FUNCION){
+			sprintf(err,"****Error semantico en lin %d: ",fila);
+			yyerror(err);
+		}
+
 		fprintf(yyout, ";R88:\t<exp> ::= <identificador> ( <lista_expresiones> )\n");
    }
    ;
@@ -485,52 +638,126 @@ resto_lista_expresiones: TOK_COMA exp resto_lista_expresiones
 
 comparacion: exp TOK_IGUAL exp
 		   {
+		   		if($1.tipo != INT || $3.tipo != INT){
+					sprintf(err,"****Error semantico en lin %d: Compracion con operandos boolean.",fila);
+					yyerror(err);
+				}
+				$$.tipo = BOOLEAN;
+				$$.es_direccion = 0;
+				etiqueta++;
+				gc_comp_igual_enteros(FILE* f,$1.es_direccion, $3.es_direccion,etiqueta));
+
 				fprintf(yyout, ";R93:\t<comparacion> ::= <exp> == <exp>\n");
 		   }
 		   | exp TOK_DISTINTO exp
 		   {
+				if($1.tipo != INT || $3.tipo != INT){
+					sprintf(err,"****Error semantico en lin %d: Compracion con operandos boolean.",fila);
+					yyerror(err);
+				}
+				$$.tipo = BOOLEAN;
+				$$.es_direccion = 0;
+				etiqueta++;
+				gc_comp_distinto_enteros(FILE* f,$1.es_direccion, $3.es_direccion,etiqueta));
+
 				fprintf(yyout, ";R94:\t<comparacion> ::= <exp> != <exp>\n");
 		   }
 		   | exp TOK_MENORIGUAL exp
 		   {
+		   		if($1.tipo != INT || $3.tipo != INT){
+					sprintf(err,"****Error semantico en lin %d: Compracion con operandos boolean.",fila);
+					yyerror(err);
+				}
+				$$.tipo = BOOLEAN;
+				$$.es_direccion = 0;
+				etiqueta++;
+				gc_comp_menorigual_enteros(FILE* f,$1.es_direccion, $3.es_direccion,etiqueta));
+
 				fprintf(yyout, ";R95:\t<comparacion> ::= <exp> <= <exp>\n");
 		   }
 		   | exp TOK_MAYORIGUAL exp
 		   {
+		   		if($1.tipo != INT || $3.tipo != INT){
+					sprintf(err,"****Error semantico en lin %d: Compracion con operandos boolean.",fila);
+					yyerror(err);
+				}
+				$$.tipo = BOOLEAN;
+				$$.es_direccion = 0;
+				etiqueta++;
+				gc_comp_mayorigual_enteros(FILE* f,$1.es_direccion, $3.es_direccion,etiqueta));
+
 				fprintf(yyout, ";R96:\t<comparacion> ::= <exp> >= <exp>\n");
 		   }
 		   | exp TOK_MENOR exp
 		   {
+				if($1.tipo != INT || $3.tipo != INT){
+					sprintf(err,"****Error semantico en lin %d: Compracion con operandos boolean.",fila);
+					yyerror(err);
+				}
+				$$.tipo = BOOLEAN;
+				$$.es_direccion = 0;
+				etiqueta++;
+				gc_comp_menor_enteros(FILE* f, $1.es_direccion, $3.es_direccion,etiqueta));
+
 				fprintf(yyout, ";R97:\t<comparacion> ::= <exp> < <exp>\n");
 		   }
 		   | exp TOK_MAYOR exp
 		   {
+				if($1.tipo != INT || $3.tipo != INT){
+					sprintf(err,"****Error semantico en lin %d: Compracion con operandos boolean.",fila);
+					yyerror(err);
+				}
+				$$.tipo = BOOLEAN;
+				$$.es_direccion = 0;
+				etiqueta++;
+				gc_comp_mayor_enteros(FILE* f,$1.es_direccion, $3.es_direccion,etiqueta);
+
 				fprintf(yyout, ";R98:\t<comparacion> ::= <exp> > <exp>\n");
 		   }
 		   ;
 
 constante: constante_logica
 		 {
+			$$.tipo = $1.tipo;
+			$$.es_direccion = $1.es_direccion;
 			fprintf(yyout, ";R99:\t<constante> ::= <constante_logica>\n");
 		 }
 		 | constante_entera
 		 {
+			$$.tipo = $1.tipo;
+			$$.es_direccion = $1.es_direccion;
+
 			fprintf(yyout, ";R100:\t<constante> ::= <constante_entera>\n");
 		 }
 		 ;
 
 constante_logica: TOK_TRUE
 				{
+					$$.tipo = BOOLEAN;
+					$$.es_direccion = 0;
+
+					gc_constante(FILE*,fila,1);
+
 					fprintf(yyout, ";R102:\t<constante_logica> ::= true\n");
 				}
 				| TOK_FALSE
 				{
+					$$.tipo = BOOLEAN;
+					$$.es_direccion = 0
+
+					gc_constante(FILE*,fila,0);
+
 					fprintf(yyout, ";R103:\t<constante_logica> ::= false\n");
 				}
 				;
 
 constante_entera: TOK_CONSTANTE_ENTERA
 				{
+					$$.tipo = INT;
+					$$.es_direccion = 0;
+
+					gc_constante(FILE*,fila,$1.valor_entero);
+
 					fprintf(yyout, ";R104:\t<constante_entera> ::= TOK_CONSTANTE_ENTERA\n");
 				}
 				;
