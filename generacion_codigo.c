@@ -49,7 +49,7 @@ void escribirFmain(FILE* f){
 	fprintf(f,"   jmp near fin\n");
 	fprintf(f,"fin: ret\n");
 }
-void gc_suma_enteros(FILE* f, es_direccion_op1, es_direccion_op2){
+void gc_suma_enteros(FILE* f,int es_direccion_op1,int es_direccion_op2){
 	fprintf(f, "; cargar el segundo operando en edx\n");
 	fprintf(f, "pop dword edx\n");
 	if (es_direccion_op2 == 1)
@@ -287,4 +287,37 @@ void gc_asignacion_vector(FILE* f,int es_direccion_op1){
 	fprintf(f, "; pop dword edx\n");
 	fprintf(f, "; Hacer la asignación efectiva\n");
 	fprintf(f, "mov dword [edx] , eax\n");
+}
+void gc_asignacion_elemento_vector(FILE* f,int es_direccion_op1,char* lex){
+	fprintf(f, "pop dword eax\n");
+  if(es_direccion_op1 == 1)
+		fprintf(f, "mov dword eax , [eax]\n");
+	fprintf(f, "cmp eax,0\n");
+	fprintf(f, "jl near mensaje_1\n");
+	fprintf(f, "cmp eax, %d\n",MAX_TAMANIO_VECTOR-1);
+	fprintf(f, "jl near mensaje_1\n");
+	fprintf(f, "mov dword edx _%s\n",lex);
+	fprintf(f, "lea eax, [edx + eax*4]\n");
+	fprintf(f, "push dword eax\n");
+}
+void gen_lectura(FILE* f,char* lex,TIPO tipo){
+	fprintf(f, "push dword _%s\n",lex );
+	if(tipo==INT)
+		fprintf(f, "call scan_int\n");
+	if(tipo==BOOLEAN)
+		fprintf(f, "call scan_boolean\n");
+	fprintf(f, "add esp, 4\n");
+}
+void gen_escritura(FILE* f,int es_direccion,TIPO tipo){
+	if(es_direccion == 1){
+		fprintf(f, "pop dword eax\n");
+		fprintf(f, "mov dword eax , [eax]\n");
+		fprintf(f, "push dword eax\n");
+	}
+	if(tipo==INT)
+		fprintf(f, "call print_int\n");
+	if(tipo==BOOLEAN)
+		fprintf(f, "call print_boolean\n");
+	fprintf(f, "add esp, 4\n");
+	fprintf(f, "call print_endofnile\n");
 }

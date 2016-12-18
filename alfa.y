@@ -365,7 +365,7 @@ asignacion: TOK_IDENTIFICADOR TOK_ASIGNACION exp
 				sprintf(err,"****Error semantico en lin %d: Asignacion incompatible.",fila);
 				yyerror(err);
 			 }
-
+			gc_asignacion_iden(yyout,$3.es_direccion,$1.lexema);
 			fprintf(yyout, ";R43:\t<asignacion> ::= <identificador> = <exp>\n");
 		  }
 		  | elemento_vector TOK_ASIGNACION exp
@@ -374,13 +374,30 @@ asignacion: TOK_IDENTIFICADOR TOK_ASIGNACION exp
 				sprintf(err,"****Error semantico en lin %d: Asignacion incompatible.",fila);
 				yyerror(err);
 			}
-
+			gc_asignacion_vector(yyout,$3.es_direccion);
 			fprintf(yyout, ";R44:\t<asignacion> ::= <elemento_vector> = <exp>\n");
 		  }
 		  ;
 
 elemento_vector: TOK_IDENTIFICADOR TOK_CORCHETEIZQUIERDO exp TOK_CORCHETEDERECHO
 			   {
+					sim = buscar($1.lexema);
+
+		 			if(sim == NULL){
+		 				sprintf(err,"****Error semantico en lin %d: Acceso a variable no declarada (%s).",fila, $1.lexema);
+		 				yyerror(err);
+		 			}
+					if(sim->clase != VECTOR){
+						sprintf(err,"****Error semantico en lin %d:Intento de indexacion de una variable que no es de tipo vector.",fila);
+						yyerror(err);
+					}
+					if($3.tipo != INT){
+						printf("\n**** Error semantico en lin %d: El indice en una operacion de indexacion tiene que ser de tipo entero.\n", yylineno);
+						return -1;
+					}
+					$$.tipo = sim->tipo;
+					$$.es_direccion = 1;
+					void gc_asignacion_elemento_vector(yyout,$3.es_direccion,$1.lexema);
 					fprintf(yyout, ";R48:\t<elemento_vector> ::= <identificador> [ <exp> ]\n");
 			   }
 			   ;
@@ -433,12 +450,14 @@ lectura: TOK_SCANF TOK_IDENTIFICADOR
 					yyerror(err);
 				}
 			}
+			gen_lectura(yyout,$2.lexema,$2.tipo);
 			fprintf(yyout, ";R54:\t<lectura> ::= scanf <identificador>\n");
 	   }
 	   ;
 
 escritura: TOK_PRINTF exp
 		 {
+			gen_escritura(yyout,$2.es_direccion,$2.tipo){
 			fprintf(yyout, ";R56:\t<escritura> ::= printf <exp>\n");
 		 }
 		 ;
