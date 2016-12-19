@@ -98,9 +98,16 @@ int en_explist=1;
 %type <atributos> lectura
 %type <atributos> escritura
 %type <atributos> retorno_funcion
+%type <atributos> fn_name
+%type <atributos> fn_declaration
 %type <atributos> exp
+%type <atributos> elemento_vector
+%type <atributos> if_exp
+%type <atributos> if_exp_sentencias
+%type <atributos> while
+%type <atributos> while_exp
+%type <atributos> bucle
 %type <atributos> idpf
-
 
 %left TOK_MAS TOK_MENOS TOK_OR
 %left TOK_ASTERISCO TOK_DIVISION TOK_AND
@@ -402,33 +409,51 @@ elemento_vector: TOK_IDENTIFICADOR TOK_CORCHETEIZQUIERDO exp TOK_CORCHETEDERECHO
 			   }
 			   ;
 
-condicional: TOK_IF TOK_PARENTESISIZQUIERDO exp TOK_PARENTESISDERECHO TOK_LLAVEIZQUIERDA sentencias TOK_LLAVEDERECHA
+condicional: if_exp sentencias TOK_LLAVEDERECHA
+			 		{
+						gen_condicional(yyout,$1.etiqueta);
+			 		}
+			 		| if_exp_sentencias TOK_ELSE TOK_LLAVEIZQUIERDA sentencias TOK_LLAVEDERECHA
+			 		{
+						gen_condicional(yyout,$1.etiqueta);
+			 		}
+			 		;
+if_exp_sentencias: if_exp sentencias
+							{
+								$$.etiqueta = $1.etiqueta;
+								gen_if_exp_sentencias(yyout,$1.etiqueta)
+							}
+							;
+if_exp: TOK_IF TOK_PARENTESISIZQUIERDO exp TOK_PARENTESISDERECHO TOK_LLAVEIZQUIERDA
 		   {
 				if($3.tipo != BOOLEAN){
 					sprintf(err,"****Error semantico en lin %d: Condicional con condicion de tipo int.",fila);
 					yyerror(err);
 				}
-
+				$$.etiqueta = etiqueta++;
+				gen_if_exp(yyout,$3.es_direccion,$$.etiqueta)
 				fprintf(yyout, ";R50:\t<condicional> ::= if( <exp> ){ <sentencias> }\n");
 		   }
-		   | TOK_IF TOK_PARENTESISIZQUIERDO exp TOK_PARENTESISDERECHO TOK_LLAVEIZQUIERDA sentencias TOK_LLAVEDERECHA TOK_ELSE TOK_LLAVEIZQUIERDA sentencias TOK_LLAVEDERECHA
-		   {
-				if($3.tipo != BOOLEAN){
-					sprintf(err,"****Error semantico en lin %d: Condicional con condicion de tipo int.",fila);
-					yyerror(err);
-				}
-
-				fprintf(yyout, ";R51:\t<condicional> ::= if( <exp> ){ <sentencias> } else { <sentencias> }\n");
-		   }
 		   ;
-
-bucle: TOK_WHILE TOK_PARENTESISIZQUIERDO exp TOK_PARENTESISDERECHO TOK_LLAVEIZQUIERDA sentencias TOK_LLAVEDERECHA
-	 {
-		if($3.tipo != BOOLEAN){
-			sprintf(err,"****Error semantico en lin %d: Bucle con condicion de tipo int.",fila);
-			yyerror(err);
+while: TOK_WHILE TOK_PARENTESISIZQUIERDO
+		{
+			$$.etiqueta = etiqueta++;
+			gen_while(yyout,etiqueta);
 		}
-
+		;
+while_exp: while exp TOK_PARENTESISDERECHO TOK_LLAVEIZQUIERDA
+				{
+					if($2.tipo != BOOLEAN){
+						sprintf(err,"****Error semantico en lin %d: Condicional con condicion de tipo int.",fila);
+						yyerror(err);
+					}
+					$$.etiqueta = $1.etiqueta;
+					gen_while_exp(yyout,$2.es_direccion,$1.etiqueta);
+				}
+				;
+bucle: while_exp sentencias TOK_LLAVEDERECHA
+	 {
+		gen_bucle(yyout,$1.etiqueta);
 		fprintf(yyout, ";R52:\t<bucle> ::= while ( <exp> ){ <sentencias> }\n");
 	 }
 	 ;

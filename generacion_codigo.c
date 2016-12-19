@@ -321,3 +321,31 @@ void gen_escritura(FILE* f,int es_direccion,TIPO tipo){
 	fprintf(f, "add esp, 4\n");
 	fprintf(f, "call print_endofnile\n");
 }
+void gen_if_exp(FILE* f,int es_direccion,int etiqueta){
+	fprintf(f, "pop eax\n");
+	if(es_direccion==1)
+		fprintf(f, "mov eax , [eax]\n");
+	fprintf(f, "cmp eax, 0\n");
+	fprintf(f, "je near fin_si%d\n",etiqueta);
+}
+void gen_if_exp_sentencias(FILE* f,int etiqueta){
+	fprintf(f, "jmp near fin_sino%d\n",etiqueta);
+	fprintf(f, "fin_si%d:\n",etiqueta);
+}
+void gen_condicional(FILE* f,int etiqueta){
+	fprintf(f, "fin_si%d\n",etiqueta);
+}
+void gen_while_exp(FILE* f,int es_direccion,int etiqueta){
+	fprintf(f, "pop eax\n");
+	if(es_direccion==1)
+		fprintf(f, "mov eax , [eax]\n");
+	fprintf(f, "cmp eax, 0\n");
+	fprintf(f, "je near fin_while%d\n",etiqueta);
+}
+void gen_while(FILE* f,int etiqueta){
+	fprintf(f, "inicio_while%d:\n",etiqueta);
+}
+void gen_bucle(FILE* f,int etiqueta){
+	fprintf(f, "jmp near inicio_while%d\n",etiqueta);
+	fprintf(f, "fin_while%d:\n",etiqueta);
+}
