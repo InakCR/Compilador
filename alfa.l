@@ -1,12 +1,13 @@
 %{
+#include <stdlib.h>
 #include <stdio.h>
 #include "y.tab.h"
+#include "alfa.h"
+#define IDLEN 101
+
 int column = 1;
 int fila = 1;
-
 int error_morfo = 0;
-
-IDLEN 101
 %}
 
 %option noyywrap
@@ -56,11 +57,12 @@ LETRA[A-z]
 "<=" 				{fprintf(yyout,";D:\t<=\n"); column+=yyleng; return TOK_MENORIGUAL;}
 "<" 				{fprintf(yyout,";D:\t<\n"); column+=yyleng; return TOK_MENOR;}
 ">" 				{fprintf(yyout,";D:\t>\n"); column+=yyleng; return TOK_MAYOR;}
-{ENTERO}+ 	{fprintf(yyout,";D:\t%s\n",yytext); column+=yyleng; return TOK_CONSTANTE_ENTERA;}
+{ENTERO}+ 	{fprintf(yyout,";D:\t%s\n",yytext); yylval.atributos.valor_entero=atoi(yytext); column+=yyleng; return TOK_CONSTANTE_ENTERA;}
 "true" 			{fprintf(yyout,";D:\ttrue\n"); column+=yyleng; return TOK_TRUE;}
 "false" 		{fprintf(yyout,";D:\tfalse\n"); column+=yyleng; return TOK_FALSE;}
 {LETRA}({LETRA}|{ENTERO})*  {
 								if(yyleng<IDLEN){
+									strcpy(yylval.atributos.lexema,yytext);
 									fprintf(yyout,";D:\t%s\n",yytext); column+=yyleng; return TOK_IDENTIFICADOR;
 								}
 								fprintf(stdr,"****Error en [lin %d, col %d]: identificador demasiado largo (%s)\n", fila, column, yytext);

@@ -109,6 +109,7 @@ int en_explist=1;
 %type <atributos> bucle
 %type <atributos> idpf
 
+%start programa
 %left TOK_MAS TOK_MENOS TOK_OR
 %left TOK_ASTERISCO TOK_DIVISION TOK_AND
 %left TOK_NOT
