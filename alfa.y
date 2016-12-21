@@ -2,8 +2,10 @@
 %{
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include "alfa.h"
+#include "gceracion_codigo.h"
 
 extern int column,fila,error_morfo;
 extern FILE *yyin, *yyout;
@@ -12,23 +14,27 @@ extern int yylex();
 extern int yyleng;
 
 int yyerror(char* s);
-int salida_parser;
 
-INFO_SIMBOLO * sim = NULL;
+
+INFO_SIMBOLO* sim = NULL;
+INFO_SIMBOLO* funcionA = NULL;
 TABLA_HASH* global = NULL, *local = NULL;
 char err[200];
 int etiqueta=0;
 
-int categoria,tipo_actual;
+int categoria_actual,tipo_actual;
 int clase_actual,tamanio_vector_actual;
-int pos_variable_local_actual=1;
-int num_variables_locales_actual=0;
-int pos_parametro_actual=0;
-int num_parametros_actual=0;
-int en_explist=1;
+int pos_variable_local_actual = 1;
+int num_variables_locales_actual = 0;
+int pos_parametro_actual = 0;
+int num_parametros_actual = 0;
+int num_parametros_llamada_actual = 0;
+int en_explist = 1;
+int fn_return = 0;
 %}
 
-%union{
+%union
+{
 	tipo_atributos atributos;
 }
 
@@ -83,7 +89,10 @@ int en_explist=1;
 %type <atributos> clase_escalar
 %type <atributos> tipo
 %type <atributos> clase_vector
+%type <atributos> constante_logica
 %type <atributos> constante_entera
+%type <atributos> constante
+%type <atributos> comparacion
 %type <atributos> identificador
 %type <atributos> funciones
 %type <atributos> funcion
@@ -221,7 +230,7 @@ funciones: funcion funciones
 		 }
 		 ;
 
-funcion: fn_declaracion sentencias TOK_LLAVEDERECHA
+funcion: fn_declaration sentencias TOK_LLAVEDERECHA
 	   {
 			liberar_tabla(local);
 			sim = buscar($1.lexema);
@@ -229,8 +238,8 @@ funcion: fn_declaracion sentencias TOK_LLAVEDERECHA
 				sprintf(err,"****Error semantico en lin %d: Acceso a variable no declarada (%s).",fila, $1.lexema);
 				yyerror(err);
 			}
-			sim.adicional1 = num_parametros_actual;
-
+			sim->adicional1 = num_parametros_actual;
+			sim->adicional2 = num_variables_locales_actual;
 			fprintf(yyout, ";R22:\t<funcion> ::= function <tipo> <identificador> ( <parametros_funcion> ) { <declaraciones_funcion> <sentencias> }\n");
 	   }
 	   ;
@@ -253,6 +262,8 @@ fn_name : TOK_FUNCTION tipo TOK_IDENTIFICADOR
  			pos_parametro_actual = 0;
 
 			strcpy($$.lexema,$3.lexema);
+			/*Guardamos el INFO_SIMBOLO de la funcion*/
+			funcionA=sim;
 		}
 		;
 fn_declaration : fn_name TOK_PARENTESISIZQUIERDO parametros_funcion TOK_PARENTESISDERECHO TOK_LLAVEIZQUIERDA declaraciones_funcion
@@ -262,8 +273,10 @@ fn_declaration : fn_name TOK_PARENTESISIZQUIERDO parametros_funcion TOK_PARENTES
 						sprintf(err,"****Error semantico en lin %d: Declaracion duplicada.",fila);
 						yyerror(err);
 					}
-					sim.adicional1 = num_parametros_actual;
+					sim->adicional1 = num_parametros_actual;
+					sim->adicional2 = num_variables_locales_actual;
 					strcpy($$.lexema,$1.lexema);
+					gc_fn_declaration(yyout,$1.lexema, num_parametros_actual);
 				}
 				;
 parametros_funcion: parametro_funcion resto_parametros_funcion
@@ -372,8 +385,13 @@ asignacion: TOK_IDENTIFICADOR TOK_ASIGNACION exp
 			 if(sim->tipo != $3.tipo){
 				sprintf(err,"****Error semantico en lin %d: Asignacion incompatible.",fila);
 				yyerror(err);
-			 }
-			gc_asignacion_iden(yyout,$3.es_direccion,$1.lexema);
+			}
+			/*Si la tabla local esta abierta se estara insertando en una funcion*/
+			if(local==NULL){
+				gc_asignacion_iden(yyout,$3.es_direccion,$1.lexema);
+			}else{
+				gc_asignacion_funcion(yyout,$3.es_direccion,sim->categoria,sim->adicional2,funcion->adicional1);
+			}
 			fprintf(yyout, ";R43:\t<asignacion> ::= <identificador> = <exp>\n");
 		  }
 		  | elemento_vector TOK_ASIGNACION exp
@@ -400,29 +418,35 @@ elemento_vector: TOK_IDENTIFICADOR TOK_CORCHETEIZQUIERDO exp TOK_CORCHETEDERECHO
 						yyerror(err);
 					}
 					if($3.tipo != INT){
-						printf("\n**** Error semantico en lin %d: El indice en una operacion de indexacion tiene que ser de tipo entero.\n", yylineno);
-						return -1;
+						sprintf(err,"**** Error semantico en lin %d: El indice en una operacion de indexacion tiene que ser de tipo entero.\n", fila);
+						yyerror(err);
+					}
+					if($3.es_direccion==0){
+						if($3.valor_entero < 0 || $3.valor_entero > (MAX_TAMANIO_VECTOR-1)){
+							sprintf(err,"**** Error semantico en lin %d: El tamanyo del vector <%s> excede los limites permitidos (1,64).\n", fila, $1.lexema);
+							yyerror(err);
+						}
 					}
 					$$.tipo = sim->tipo;
 					$$.es_direccion = 1;
-					void gc_asignacion_elemento_vector(yyout,$3.es_direccion,$1.lexema);
+					gc_asignacion_elemento_vector(yyout,$3.es_direccion,$1.lexema);
 					fprintf(yyout, ";R48:\t<elemento_vector> ::= <identificador> [ <exp> ]\n");
 			   }
 			   ;
 
 condicional: if_exp sentencias TOK_LLAVEDERECHA
 			 		{
-						gen_condicional(yyout,$1.etiqueta);
+						gc_condicional(yyout,$1.etiqueta);
 			 		}
 			 		| if_exp_sentencias TOK_ELSE TOK_LLAVEIZQUIERDA sentencias TOK_LLAVEDERECHA
 			 		{
-						gen_condicional(yyout,$1.etiqueta);
+						gc_condicional(yyout,$1.etiqueta);
 			 		}
 			 		;
 if_exp_sentencias: if_exp sentencias
 							{
 								$$.etiqueta = $1.etiqueta;
-								gen_if_exp_sentencias(yyout,$1.etiqueta)
+								gc_if_exp_sentencias(yyout,$1.etiqueta);
 							}
 							;
 if_exp: TOK_IF TOK_PARENTESISIZQUIERDO exp TOK_PARENTESISDERECHO TOK_LLAVEIZQUIERDA
@@ -432,14 +456,14 @@ if_exp: TOK_IF TOK_PARENTESISIZQUIERDO exp TOK_PARENTESISDERECHO TOK_LLAVEIZQUIE
 					yyerror(err);
 				}
 				$$.etiqueta = etiqueta++;
-				gen_if_exp(yyout,$3.es_direccion,$$.etiqueta)
+				gc_if_exp(yyout,$3.es_direccion,$$.etiqueta);
 				fprintf(yyout, ";R50:\t<condicional> ::= if( <exp> ){ <sentencias> }\n");
 		   }
 		   ;
 while: TOK_WHILE TOK_PARENTESISIZQUIERDO
 		{
 			$$.etiqueta = etiqueta++;
-			gen_while(yyout,etiqueta);
+			gc_while(yyout,etiqueta);
 		}
 		;
 while_exp: while exp TOK_PARENTESISDERECHO TOK_LLAVEIZQUIERDA
@@ -449,12 +473,12 @@ while_exp: while exp TOK_PARENTESISDERECHO TOK_LLAVEIZQUIERDA
 						yyerror(err);
 					}
 					$$.etiqueta = $1.etiqueta;
-					gen_while_exp(yyout,$2.es_direccion,$1.etiqueta);
+					gc_while_exp(yyout,$2.es_direccion,$1.etiqueta);
 				}
 				;
 bucle: while_exp sentencias TOK_LLAVEDERECHA
 	 {
-		gen_bucle(yyout,$1.etiqueta);
+		gc_bucle(yyout,$1.etiqueta);
 		fprintf(yyout, ";R52:\t<bucle> ::= while ( <exp> ){ <sentencias> }\n");
 	 }
 	 ;
@@ -476,20 +500,31 @@ lectura: TOK_SCANF TOK_IDENTIFICADOR
 					yyerror(err);
 				}
 			}
-			gen_lectura(yyout,$2.lexema,$2.tipo);
+			gc_lectura(yyout,$2.lexema,$2.tipo);
 			fprintf(yyout, ";R54:\t<lectura> ::= scanf <identificador>\n");
 	   }
 	   ;
 
 escritura: TOK_PRINTF exp
 		 {
-			gen_escritura(yyout,$2.es_direccion,$2.tipo){
+			gc_escritura(yyout,$2.es_direccion,$2.tipo);
 			fprintf(yyout, ";R56:\t<escritura> ::= printf <exp>\n");
 		 }
 		 ;
 
 retorno_funcion: TOK_RETURN exp
 			   {
+					if(funcionA->tipo != $2.tipo){
+						sprintf(err,"**** Error semantico en lin %d:Asignacion incompatible",linea);
+						yyerror(err);
+					}
+					if($2.es_direccion != 1 && $2.es_direccion != 0){
+						sprintf(err,"**** Error semantico en lin %d:Asignacion incompatible",linea);
+						yyerror(err);
+					}
+
+					fn_return++;
+					gc_retorno_funcion(yyout,$2.es_direccion);
 					fprintf(yyout, ";R61:\t<retorno_funcion> ::= return <exp>\n");
 			   }
 			   ;
@@ -526,7 +561,7 @@ exp: exp TOK_MAS exp
 		}
 		$$.tipo = INT;
 		$$.es_direccion = 0;
-		gc_division_enteros(yyout, $1.es_direccion, $3.es_direccion);
+		gc_div_enteros(yyout, $1.es_direccion, $3.es_direccion);
 
 		fprintf(yyout, ";R74:\t<exp> ::= <exp> / <exp>\n");
    }
@@ -606,13 +641,13 @@ exp: exp TOK_MAS exp
 		}
 
 		if(sim->categoria == FUNCION){
-			sprintf(err,"****Error semantico en lin %d: ",fila);
+			sprintf(err,"****Error semantico en lin %d: Identificador de categoria Funcion",fila);
 			yyerror(err);
 		}
 
 		$$.tipo = sim->tipo;
 		$$.es_direccion = 1;
-
+    /************************************* GENERAR*/////
 		fprintf(yyout, ";R80:\t<exp> ::= <identificador>\n");
    }
    | constante
@@ -643,7 +678,7 @@ exp: exp TOK_MAS exp
 
 		fprintf(yyout, ";R85:\t<exp> ::= <elemento_vector>\n");
    }
-   | TOK_IDENTIFICADOR TOK_PARENTESISIZQUIERDO lista_expresiones TOK_PARENTESISDERECHO
+   | idf_llamada_funcion TOK_PARENTESISIZQUIERDO lista_expresiones TOK_PARENTESISDERECHO
    {
 		sim = buscar($1.lexema);
 
@@ -651,18 +686,43 @@ exp: exp TOK_MAS exp
 			sprintf(err,"****Error semantico en lin %d: Acceso a variable no declarada (%s).",fila, $1.lexema);
 			yyerror(err);
 		}
-
-		if(sim->categoria != FUNCION){
-			sprintf(err,"****Error semantico en lin %d: ",fila);
+		if(num_parametros_llamada_actual!=sim->adicional1){
+			sprintf(err,"****Error semantico en lin %d: Numero incorrecto de parametros en llamada a funcion.",fila);
 			yyerror(err);
 		}
-
+		en_explist = 0;
+		/***es funcion**//
+		$$.tipo = sim->tipo;
+		$$.es_direccion = 0;
+		gc_idf_llamada_funcion(yyout,$1.lexema,num_parametros_llamada_actual);
 		fprintf(yyout, ";R88:\t<exp> ::= <identificador> ( <lista_expresiones> )\n");
    }
    ;
+idf_llamada_funcion: TOK_IDENTIFICADOR
+				  {
+				  	sim = buscar($1.lexema);
 
+						if(sim == NULL){
+							sprintf(err,"****Error semantico en lin %d: Acceso a variable no declarada (%s).",fila, $1.lexema);
+							yyerror(err);
+						}
+						if(sim->categoria != FUNCION){
+							sprintf(err,"****Error semantico en lin %d: Identificador de no es de categoria Funcion ",fila);
+							yyerror(err);
+						}
+						if(en_explist==1){
+							sprintf(err,"****Error semantico en lin %d: No esta permitido el uso de llamadas a funciones como parametros de otras funciones. ",fila);
+							yyerror(err);
+						}
+						num_parametros_llamada_actual = 0;
+						/*** es funcion **/
+						en_explist = 1;
+						strcpy($$.lexema,$1.lexema);
+				  }
+				  ;
 lista_expresiones: exp resto_lista_expresiones
 				 {
+					num_parametros_llamada_actual++;
 					fprintf(yyout, ";R89:\t<lista_expresiones> ::= <exp> <resto_lista_expresiones>\n");
 				 }
 				 |
@@ -673,6 +733,7 @@ lista_expresiones: exp resto_lista_expresiones
 
 resto_lista_expresiones: TOK_COMA exp resto_lista_expresiones
 					   {
+							num_parametros_llamada_actual++;
 							fprintf(yyout, ";R91:\t<resto_lista_expresiones> ::= , <exp> <resto_lista_expresiones>\n");
 					   }
 					   |
@@ -690,7 +751,7 @@ comparacion: exp TOK_IGUAL exp
 				$$.tipo = BOOLEAN;
 				$$.es_direccion = 0;
 				etiqueta++;
-				gc_comp_igual_enteros(FILE* f,$1.es_direccion, $3.es_direccion,etiqueta));
+				gc_comp_igual_enteros(yyout,$1.es_direccion, $3.es_direccion,etiqueta);
 
 				fprintf(yyout, ";R93:\t<comparacion> ::= <exp> == <exp>\n");
 		   }
@@ -703,7 +764,7 @@ comparacion: exp TOK_IGUAL exp
 				$$.tipo = BOOLEAN;
 				$$.es_direccion = 0;
 				etiqueta++;
-				gc_comp_distinto_enteros(FILE* f,$1.es_direccion, $3.es_direccion,etiqueta));
+				gc_comp_distinto_enteros(yyout,$1.es_direccion, $3.es_direccion,etiqueta);
 
 				fprintf(yyout, ";R94:\t<comparacion> ::= <exp> != <exp>\n");
 		   }
@@ -716,7 +777,7 @@ comparacion: exp TOK_IGUAL exp
 				$$.tipo = BOOLEAN;
 				$$.es_direccion = 0;
 				etiqueta++;
-				gc_comp_menorigual_enteros(FILE* f,$1.es_direccion, $3.es_direccion,etiqueta));
+				gc_comp_menorigual_enteros(yyout,$1.es_direccion, $3.es_direccion,etiqueta);
 
 				fprintf(yyout, ";R95:\t<comparacion> ::= <exp> <= <exp>\n");
 		   }
@@ -729,7 +790,7 @@ comparacion: exp TOK_IGUAL exp
 				$$.tipo = BOOLEAN;
 				$$.es_direccion = 0;
 				etiqueta++;
-				gc_comp_mayorigual_enteros(FILE* f,$1.es_direccion, $3.es_direccion,etiqueta));
+				gc_comp_mayorigual_enteros(yyout,$1.es_direccion, $3.es_direccion,etiqueta);
 
 				fprintf(yyout, ";R96:\t<comparacion> ::= <exp> >= <exp>\n");
 		   }
@@ -742,7 +803,7 @@ comparacion: exp TOK_IGUAL exp
 				$$.tipo = BOOLEAN;
 				$$.es_direccion = 0;
 				etiqueta++;
-				gc_comp_menor_enteros(FILE* f, $1.es_direccion, $3.es_direccion,etiqueta));
+				gc_comp_menor_enteros(yyout, $1.es_direccion, $3.es_direccion,etiqueta);
 
 				fprintf(yyout, ";R97:\t<comparacion> ::= <exp> < <exp>\n");
 		   }
@@ -755,7 +816,7 @@ comparacion: exp TOK_IGUAL exp
 				$$.tipo = BOOLEAN;
 				$$.es_direccion = 0;
 				etiqueta++;
-				gc_comp_mayor_enteros(FILE* f,$1.es_direccion, $3.es_direccion,etiqueta);
+				gc_comp_mayor_enteros(yyout,$1.es_direccion, $3.es_direccion,etiqueta);
 
 				fprintf(yyout, ";R98:\t<comparacion> ::= <exp> > <exp>\n");
 		   }
@@ -781,16 +842,16 @@ constante_logica: TOK_TRUE
 					$$.tipo = BOOLEAN;
 					$$.es_direccion = 0;
 
-					gc_constante(FILE*,fila,1);
+					gc_constante(yyout,fila,1);
 
 					fprintf(yyout, ";R102:\t<constante_logica> ::= true\n");
 				}
 				| TOK_FALSE
 				{
 					$$.tipo = BOOLEAN;
-					$$.es_direccion = 0
+					$$.es_direccion = 0;
 
-					gc_constante(FILE*,fila,0);
+					gc_constante(yyout,fila,0);
 
 					fprintf(yyout, ";R103:\t<constante_logica> ::= false\n");
 				}
@@ -801,12 +862,12 @@ constante_entera: TOK_CONSTANTE_ENTERA
 					$$.tipo = INT;
 					$$.es_direccion = 0;
 
-					gc_constante(FILE*,fila,$1.valor_entero);
+					gc_constante(yyout,fila,$1.valor_entero);
 
 					fprintf(yyout, ";R104:\t<constante_entera> ::= TOK_CONSTANTE_ENTERA\n");
 				}
 				;
-
+/*Identificadores de variables globales & locales*/
 identificador: TOK_IDENTIFICADOR
 			{
 			 sim = buscar($1.lexema);
@@ -816,19 +877,19 @@ identificador: TOK_IDENTIFICADOR
 			 }
 			 if(local==NULL){
 					insertar_simbolo(global,$1.lexema,VARIABLE,tipo_actual,clase_actual,tamanio_vector_actual,0);
-					pos_variable_local_actual++:
 			}else{
 				if(clase_actual!=ESCALAR){
 					sprintf(err,"****Error semantico en lin %d: Variable local de tipo no escalar.",fila);
 					yyerror(err);
 				}
-				insertar_simbolo(local,$1.lexema,categoria,tipo,clase,tamanio_vector_actual,pos_variable_local_actual);
+				insertar_simbolo(local,$1.lexema,categoria_actual,tipo_actual,clase_actual,tamanio_vector_actual,pos_variable_local_actual);
 				pos_variable_local_actual++;
 				num_variables_locales_actual++;
 			}
 			fprintf(yyout, ";R108:\t<identificador> ::= TOK_IDENTIFICADOR\n");
 		 }
 		 ;
+/*Identificadores de parametros y Funciones*/
 idpf: TOK_IDENTIFICADOR
 	{
 		sim = buscar($1.lexema);
@@ -838,25 +899,28 @@ idpf: TOK_IDENTIFICADOR
 			yyerror(err);
 		}
 
-		insertar_simbolo(local,$1.lexema,categoria,tipo,clase,tamanio_vector_actual,pos_parametro_actual);
+		insertar_simbolo(local,$1.lexema,categoria_actual,tipo_actual,clase_actual,tamanio_vector_actual,pos_parametro_actual);
 		pos_parametro_actual++;
 		num_parametros_actual++;
 	}
 	;
 %%
 
-INFO_SIMBOLO *buscar(const char *lexema) {
+INFO_SIMBOLO* buscar(const char *lexema) {
+	INFO_SIMBOLO* inf = NULL;
 	if(local==NULL){
-		return buscar_simbolo(local,lexema);
+		inf=buscar_simbolo(local,lexema);
+	}else{
+		inf=buscar_simbolo(global,lexema);
 	}
-	return buscar_simbolo(global,lexema);
+	return inf;
 }
 
 int yyerror (char* s){
 	if (error_morfo == 0){
 		column-=yyleng;
-		fprintf(stdr,"****Error sintactico en [lin %d, col %d]\n", fila, column);
+		fprintf(stderr,"****Error sintactico en [lin %d, col %d]\n", fila, column);
 	}
-	fprintf(stdr,"%s",s);
+	fprintf(stderr,"%s\n",s);
 	return 1;
 }

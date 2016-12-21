@@ -1,8 +1,8 @@
 %{
 #include <stdlib.h>
 #include <stdio.h>
-#include "y.tab.h"
 #include "alfa.h"
+#include "y.tab.h"
 #define IDLEN 101
 
 int column = 1;
@@ -65,13 +65,12 @@ LETRA[A-z]
 									strcpy(yylval.atributos.lexema,yytext);
 									fprintf(yyout,";D:\t%s\n",yytext); column+=yyleng; return TOK_IDENTIFICADOR;
 								}
-								fprintf(stdr,"****Error en [lin %d, col %d]: identificador demasiado largo (%s)\n", fila, column, yytext);
+								fprintf(stderr,"****Error en [lin %d, col %d]: identificador demasiado largo (%s)\n", fila, column, yytext);
 								error_morfo = 1;
-								return -1;
-								}
+								return -1;								
 						}
 .						{	error_morfo = 1;
-							fprintf(stdr,"***Error en [lin %d, col %d]: simbolo no permitido (%s)\n", fila, column, yytext);
+							fprintf(stderr,"***Error en [lin %d, col %d]: simbolo no permitido (%s)\n", fila, column, yytext);
 				 			return -1;
 						}
 %%
