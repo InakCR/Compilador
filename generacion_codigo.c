@@ -1,4 +1,4 @@
-#include "gceracion_codigo.h"
+#include "generacion_codigo.h"
 
 void escribirSegmentos(FILE* f,TABLA_HASH* hash){
 	escribirData(f);
@@ -7,8 +7,8 @@ void escribirSegmentos(FILE* f,TABLA_HASH* hash){
 }
 void escribirData(FILE* f){
 	fprintf(f,"segment .data\n");
-	fprintf(f,"mensaje_1 db 'Indice fuera de rango' , 0\n");
-	fprintf(f,"mensaje_2 db 'División por cero' , 0\n");
+	fprintf(f,"\tmensaje_1 db 'Indice fuera de rango' , 0\n");
+	fprintf(f,"\tmensaje_2 db 'División por cero' , 0\n");
 	fprintf(f,"\n");
 }
 void escribirBss(FILE* f,TABLA_HASH* hash){
@@ -19,9 +19,9 @@ void escribirBss(FILE* f,TABLA_HASH* hash){
 		n=hash->tabla[i];
 		while(n!=NULL){
 			if(n->info->clase==ESCALAR)
-				fprintf(f, "_%s resd",n->info->lexema);
+				fprintf(f, "\t_%s resd",n->info->lexema);
 			if(n->info->clase==VECTOR)
-				fprintf(f, "_%s resd %d",n->info->lexema,n->info->adicional1);
+				fprintf(f, "\t_%s resd %d",n->info->lexema,n->info->adicional1);
 			n=n->siguiente;
 		}
 	}
@@ -290,7 +290,7 @@ void gc_asignacion_vector(FILE* f,int es_direccion_op1){
 	fprintf(f, "pop dword eax\n");
 	if (es_direccion_op1 == 1)
 		fprintf(f, "mov dword eax , [eax]\n");
-	fprintf(f, "; pop dword edx\n");
+	fprintf(f, "pop dword edx\n");
 	fprintf(f, "mov dword [edx] , eax\n");
 }
 void gc_asignacion_elemento_vector(FILE* f,int es_direccion_op1,char* lex){
@@ -372,4 +372,18 @@ void gc_retorno_funcion(FILE* f,int es_direccion){
 	fprintf(f, "mov dword esp, ebp\n");
 	fprintf(f, "pop dword ebp\n");
 	fprintf(f, "ret\n");
+}
+void gc_exp_iden_var_local(FILE* f,int posVar){
+	fprintf(f, "lea eax, [ebp-%d]\n",4*posVar);
+	fprintf(f, "push dword eax\n");
+}
+void gc_exp_iden_param(FILE* f,int gNumPar,int posPar){
+	fprintf(f, "lea eax, [ebp+%d]\n",4+4*(gNumPar - posPar));
+	fprintf(f, "push dword eax\n");
+}
+void gc_direccion(FILE* f,char* lex){
+		fprintf(f, "push dword _%s\n",lex);
+}
+void gc_contenido(FILE* f,char* lex){
+	fprintf(f, "push dword [_%s]\n",lex);
 }

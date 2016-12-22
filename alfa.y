@@ -240,6 +240,10 @@ funcion: fn_declaration sentencias TOK_LLAVEDERECHA
 			}
 			sim->adicional1 = num_parametros_actual;
 			sim->adicional2 = num_variables_locales_actual;
+			if(fn_return == 0){
+				sprintf(err,"****Error semantico en lin %d:	Funcion <nombre_funcion> sin sentencia de retorno.",fila,$1.lexema);
+				yyerror(err);
+			}
 			fprintf(yyout, ";R22:\t<funcion> ::= function <tipo> <identificador> ( <parametros_funcion> ) { <declaraciones_funcion> <sentencias> }\n");
 	   }
 	   ;
@@ -390,7 +394,7 @@ asignacion: TOK_IDENTIFICADOR TOK_ASIGNACION exp
 			if(local==NULL){
 				gc_asignacion_iden(yyout,$3.es_direccion,$1.lexema);
 			}else{
-				gc_asignacion_funcion(yyout,$3.es_direccion,sim->categoria,sim->adicional2,funcion->adicional1);
+				gc_asignacion_funcion(yyout,$3.es_direccion,sim->categoria,sim->adicional2,funcionA->adicional1);/*MIRAR*/
 			}
 			fprintf(yyout, ";R43:\t<asignacion> ::= <identificador> = <exp>\n");
 		  }
@@ -647,7 +651,20 @@ exp: exp TOK_MAS exp
 
 		$$.tipo = sim->tipo;
 		$$.es_direccion = 1;
-    /************************************* GENERAR*/////
+		if(sim->categoria == PARAMETRO){
+			gc_exp_iden_param(yyout,num_parametros_actual,sim->adicional2);
+		}
+		if(sim->categoria == VARIABLE){
+			if(sim->adicional2 == 0){
+				if(en_explist == 1){
+					gc_direccion(yyout,$1.lexema);
+				}else{
+					gc_contenido(yyout,$1.lexema);
+				}
+			}else{
+				gc_exp_iden_var_local(yyout,sim->adicional2);
+			}
+		}
 		fprintf(yyout, ";R80:\t<exp> ::= <identificador>\n");
    }
    | constante
@@ -691,7 +708,7 @@ exp: exp TOK_MAS exp
 			yyerror(err);
 		}
 		en_explist = 0;
-		/***es funcion**//
+		/***es funcion**/
 		$$.tipo = sim->tipo;
 		$$.es_direccion = 0;
 		gc_idf_llamada_funcion(yyout,$1.lexema,num_parametros_llamada_actual);
@@ -731,7 +748,7 @@ lista_expresiones: exp resto_lista_expresiones
 				 }
 				 ;
 
-resto_lista_expresiones: TOK_COMA exp resto_lista_expresiones
+resto_lista_expresiones: TOK_PUNTOYCOMA exp resto_lista_expresiones
 					   {
 							num_parametros_llamada_actual++;
 							fprintf(yyout, ";R91:\t<resto_lista_expresiones> ::= , <exp> <resto_lista_expresiones>\n");

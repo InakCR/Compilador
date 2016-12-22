@@ -48,3 +48,7 @@ void gc_bucle(FILE* f,int etiqueta);
 void gc_idf_llamada_funcion(FILE* f,char* lex,int gNumPar);
 void gc_fn_declaration(FILE* f,char* lex,int gNumVar);
 void gc_retorno_funcion(FILE* f,int es_direccion);
+void gc_exp_iden_param(FILE* f,int gNumPar,int posPar);
+void gc_exp_iden_var_local(FILE* f,int posVar);
+void gc_direccion(FILE* f,char* lex);
+void gc_contenido(FILE* f,char* lex);
