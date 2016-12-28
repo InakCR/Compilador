@@ -1,0 +1,22 @@
+// Sesion 2: Operaciones Logicas
+
+main 
+
+{
+
+boolean x,y;
+
+x = true;
+y = false;
+
+y = x && y;
+
+printf y; 
+
+}
+
+
+
+
+
+

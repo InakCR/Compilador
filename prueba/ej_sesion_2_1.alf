@@ -1,0 +1,22 @@
+// Sesion 2: Operaciones Aritmeticas
+
+main 
+
+{
+
+int x,y;
+
+x = 8;
+y = 5;
+
+y = x + y;
+
+printf y; 
+
+}
+
+
+
+
+
+

@@ -1,0 +1,26 @@
+// Tratamiento de operaciones aritmeticas, comprobando la precedencia de operadores
+
+main
+{
+// Declaraciones
+
+    int x, y, z;
+
+// Sentencias
+
+	scanf x;
+	scanf y;
+	scanf z;
+
+	printf x+y*z;
+
+	printf (x+y)*z;
+
+	printf -x*y*-z;
+
+}
+
+
+
+
+

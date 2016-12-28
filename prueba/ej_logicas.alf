@@ -1,0 +1,26 @@
+// Tratamiento de sentencias logicas.
+
+main
+{
+// Declaraciones
+
+    boolean a, b, res;
+
+// Sentencias
+
+	scanf a;
+	scanf b;
+
+	res = a && b;
+	printf res;
+	res = a || b;
+	printf res;
+	res = ! a;
+	printf res;
+
+}
+
+
+
+
+

@@ -1,0 +1,22 @@
+// Sesion 2: Entrada
+
+main 
+
+{
+
+int x,y;
+
+scanf x;
+scanf y;
+
+y = x + y;
+
+printf y; 
+
+}
+
+
+
+
+
+

@@ -1,0 +1,19 @@
+// Sesion 1: El más básico
+
+main 
+
+{
+
+int x;
+
+x = 8;
+
+printf x; 
+
+}
+
+
+
+
+
+

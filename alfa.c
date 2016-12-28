@@ -1,22 +1,24 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 #include "alfa.h"
-#include "y.tab.h"
+#include "generacion_codigo.h"
 
 extern FILE *yyin, *yyout;
 extern int yyparse();
 
 int main(int argc, char* argv[]){
-	int salida_parser;
 	
+	if(argc != 3 ){
+		printf("Erro de parametros.\n");
+		return 0;
+	}
 	yyin = fopen(argv[1], "r");
 	yyout = fopen(argv[2], "w");
 
-	salida_parser = yyparse();
+	yyparse();
 
 	fclose(yyin);
 	fclose(yyout);
 
-	return salida_parser;
+	return 1;
 }

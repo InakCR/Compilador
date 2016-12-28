@@ -14,4 +14,4 @@ $(EXE) :
 	$(CC) $(CFLAGS) -o alfa alfa.c tablaHash.c generacion_codigo.c y.tab.c lex.yy.c
 
 clean :
-		rm -f *.o lex.yy.c y.output y.tab.* $(EXE)
+		rm -f *.o lex.yy.c y.output compilador sal.asm y.tab.* $(EXE)

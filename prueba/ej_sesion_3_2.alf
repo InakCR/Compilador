@@ -1,0 +1,23 @@
+// Sesion 3: Vectores con error
+
+main 
+
+{
+
+array int [5] x;
+int y;
+
+x[2]=5;
+y=3;
+
+x[3] = x[2] + y;
+
+printf x[6]; 
+
+}
+
+
+
+
+
+

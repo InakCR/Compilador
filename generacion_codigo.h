@@ -33,14 +33,17 @@ void gc_constante(FILE*, int nlinea,int valor);
 void gc_asignacion_iden(FILE* f,int es_direccion_op1,char* lex);
 void gc_asignacion_funcion(FILE* f,int es_direccion,CATEGORIA cat,int pos,int nParLoc);
 void gc_asignacion_vector(FILE* f,int es_direccion_op1);
-void gc_asignacion_elemento_vector(FILE* f,int es_direccion_op1,char* lex);
+void gc_asignacion_elemento_vector(FILE* f,int es_direccion_op1,char* lex,int maxV);
 /*Entrada Salida*/
 void gc_lectura(FILE* f,char* lex,TIPO tipo);
+void gc_lectura_fn_para(FILE* f,TIPO tipo,int posPar,int gNumPar);
+void gc_lectura_fn_var(FILE* f,TIPO tipo,int posVar);
 void gc_escritura(FILE* f,int es_direccion,TIPO tipo);
 /*Bucles*/
 void gc_if_exp(FILE* f,int es_direccion,int etiqueta);
 void gc_if_exp_sentencias(FILE* f,int etiqueta);
-void gc_condicional(FILE* f,int etiqueta);
+void gc_condicional_if(FILE* f,int etiqueta);
+void gc_condicional_else(FILE* f,int etiqueta);
 void gc_while_exp(FILE* f,int es_direccion,int etiqueta);
 void gc_while(FILE* f,int etiqueta);
 void gc_bucle(FILE* f,int etiqueta);

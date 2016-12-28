@@ -1,0 +1,19 @@
+// Sesion 1: Semantica de Variable no declarada
+
+main 
+
+{
+
+int x;
+
+y = 8;
+
+printf x; 
+
+}
+
+
+
+
+
+

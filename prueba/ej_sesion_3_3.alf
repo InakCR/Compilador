@@ -1,0 +1,33 @@
+// Sesion 3: Comparaciones y estructuras de control
+
+main 
+
+{
+
+array int [10] x;
+int y,i;
+
+x[2]=5;
+y=3;
+
+x[3] = x[2] + y;
+
+while ((i<10))
+	{
+		x[i]=i;
+		if ((i<5))
+		{
+			printf x[i];
+		}
+		i = i + 1;
+	}
+
+ 
+
+}
+
+
+
+
+
+

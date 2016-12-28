@@ -1,0 +1,20 @@
+// Sesion 1: Asignamos variables 
+
+main 
+
+{
+
+int x,y;
+
+x = 8;
+y = x;
+
+printf y; 
+
+}
+
+
+
+
+
+
